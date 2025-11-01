@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { mockVenues } from "@/lib/admin-store"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -56,11 +57,18 @@ interface ApprovalData {
 }
 
 export default function EventsPage() {
+  const searchParams = useSearchParams()
   const [createdEvents, setCreatedEvents] = useState<ClientEvent[]>([])
   const [bookedEvents, setBookedEvents] = useState<ClientEvent[]>([])
   const [rejectedEvents, setRejectedEvents] = useState<ClientEvent[]>([])
   const [allEvents, setAllEvents] = useState<ClientEvent[]>([])
-  const [viewType, setViewType] = useState<"all" | "created" | "booked" | "rejected">("all")
+  const [viewType, setViewType] = useState<"all" | "created" | "booked" | "rejected">(() => {
+    const view = searchParams.get("view")
+    if (view === "created" || view === "booked" || view === "rejected") {
+      return view
+    }
+    return "all"
+  })
   const [pendingEventsCount, setPendingEventsCount] = useState(0)
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set())
   const [approvalEvent, setApprovalEvent] = useState<ClientEvent | null>(null)

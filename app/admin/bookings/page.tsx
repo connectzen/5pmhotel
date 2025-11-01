@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -25,11 +26,18 @@ import { db } from "@/lib/firebase"
 import { differenceInCalendarDays, parseISO, isValid } from "date-fns"
 
 export default function BookingsPage() {
+  const searchParams = useSearchParams()
   const [bookings, setBookings] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<
     "all" | "pending" | "approved" | "rejected" | "checked-in" | "checked-out" | "cancelled"
-  >("all")
+  >(() => {
+    const filter = searchParams.get("filter")
+    if (filter === "pending" || filter === "approved" || filter === "rejected" || filter === "checked-in" || filter === "checked-out" || filter === "cancelled") {
+      return filter
+    }
+    return "all"
+  })
   const [selectedBooking, setSelectedBooking] = useState<any | null>(null)
   const [editingBooking, setEditingBooking] = useState<any | null>(null)
   const [approvalBooking, setApprovalBooking] = useState<any | null>(null)

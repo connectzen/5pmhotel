@@ -12,7 +12,6 @@ import {
   CreditCard,
   BarChart3,
   Settings,
-  LogOut,
   FileText,
 } from "lucide-react"
 import { collection, onSnapshot } from "firebase/firestore"
@@ -59,12 +58,6 @@ export function AdminSidebar() {
     }
   }, [])
 
-  const handleLogout = () => {
-    localStorage.removeItem("adminToken")
-    localStorage.removeItem("adminEmail")
-    window.location.href = "/admin/login"
-  }
-
   const getBadgeCount = (badgeKey?: string) => {
     if (badgeKey === "bookings") return pendingBookingsCount
     if (badgeKey === "events") return pendingEventsCount
@@ -88,23 +81,56 @@ export function AdminSidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center justify-between gap-3 px-4 py-2 rounded-lg transition-colors relative",
+                "flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-all duration-300 relative group overflow-hidden",
+                "hover:scale-[1.02] hover:translate-x-1 hover:shadow-lg",
                 isActive
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/10",
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md scale-[1.02] translate-x-1"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/20",
               )}
             >
-              <div className="flex items-center gap-3">
-                <Icon className="w-5 h-5" />
-                <span className="text-sm font-medium">{item.label}</span>
+              {/* Animated left border indicator */}
+              <div className={cn(
+                "absolute left-0 top-0 bottom-0 w-1 bg-accent transition-all duration-300 rounded-r-full",
+                isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100 scale-y-0 group-hover:scale-y-100"
+              )} />
+              
+              {/* Background glow effect */}
+              <div className={cn(
+                "absolute inset-0 bg-gradient-to-r from-accent/5 to-transparent transition-opacity duration-300 rounded-lg",
+                isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+              )} />
+              
+              <div className="flex items-center gap-3 relative z-10">
+                <div className={cn(
+                  "p-1.5 rounded-lg transition-all duration-300",
+                  isActive 
+                    ? "bg-sidebar-primary-foreground/20" 
+                    : "bg-transparent group-hover:bg-sidebar-accent/30"
+                )}>
+                  <Icon className={cn(
+                    "w-5 h-5 transition-all duration-300",
+                    isActive 
+                      ? "scale-110" 
+                      : "group-hover:scale-110 group-hover:rotate-3"
+                  )} />
+                </div>
+                <span className={cn(
+                  "text-sm font-medium transition-all duration-300",
+                  isActive 
+                    ? "font-semibold" 
+                    : "group-hover:font-semibold"
+                )}>
+                  {item.label}
+                </span>
               </div>
               {item.showBadge && badgeCount > 0 && (
                 <span
                   className={cn(
-                    "flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-bold",
+                    "flex items-center justify-center min-w-[22px] h-6 px-2 rounded-full text-xs font-bold transition-all duration-300 relative z-10",
                     isActive
-                      ? "bg-sidebar-primary-foreground/20 text-sidebar-primary-foreground"
-                      : "bg-red-500 text-white"
+                      ? "bg-sidebar-primary-foreground/30 text-sidebar-primary-foreground scale-110"
+                      : "bg-red-500 text-white group-hover:scale-110 group-hover:shadow-md",
+                    "animate-pulse"
                   )}
                 >
                   {badgeCount > 99 ? "99+" : badgeCount}
@@ -115,21 +141,6 @@ export function AdminSidebar() {
         })}
       </nav>
 
-      <div className="p-4 border-t border-sidebar-border space-y-2">
-        <Link
-          href="/"
-          className="block text-center px-4 py-2 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground hover:opacity-90 transition-colors"
-        >
-          Back to Site
-        </Link>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-4 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/10 transition-colors"
-        >
-          <LogOut className="w-5 h-5" />
-          <span className="text-sm font-medium">Logout</span>
-        </button>
-      </div>
     </aside>
   )
 }
