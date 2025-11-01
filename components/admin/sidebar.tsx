@@ -20,8 +20,8 @@ import { db } from "@/lib/firebase"
 
 const menuItems = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard, showBadge: false },
-  { href: "/admin/bookings", label: "Bookings", icon: Calendar, showBadge: true, badgeKey: "bookings" },
   { href: "/admin/rooms", label: "Rooms", icon: DoorOpen, showBadge: false },
+  { href: "/admin/bookings", label: "Bookings", icon: Calendar, showBadge: true, badgeKey: "bookings" },
   { href: "/admin/venues", label: "Venues", icon: Building2, showBadge: false },
   { href: "/admin/events", label: "Events", icon: Calendar, showBadge: true, badgeKey: "events" },
   { href: "/admin/payments", label: "Payments", icon: CreditCard, showBadge: false },
