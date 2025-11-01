@@ -22,8 +22,8 @@ export function FeaturedRooms() {
     <section className="py-16 px-4 bg-background">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
-          <h2 className="font-serif text-4xl font-bold text-primary mb-4">Featured Rooms</h2>
-          <p className="text-foreground/70 text-lg">Discover our most popular accommodations</p>
+          <h2 className="font-serif text-4xl font-bold text-primary mb-4">Available Rooms</h2>
+          <p className="text-foreground/70 text-lg">Discover our available accommodations</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
