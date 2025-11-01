@@ -68,6 +68,17 @@ export default function DashboardPage() {
         return paymentDate.getTime() === today.getTime()
       })
       .reduce((sum: number, p: any) => sum + (Number(p.amount ?? 0) || 0), 0)
+    // Calculate monthly revenue from completed payments in current month
+    const currentMonth = new Date().getMonth()
+    const currentYear = new Date().getFullYear()
+    const monthlyRevenue = payments
+      .filter((p: any) => {
+        if (p.status !== "completed") return false
+        const paymentDate = p.createdAt?.toDate ? p.createdAt.toDate() : (p.date ? new Date(p.date) : null)
+        if (!paymentDate) return false
+        return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear
+      })
+      .reduce((sum: number, p: any) => sum + (Number(p.amount ?? 0) || 0), 0)
     // Calculate total revenue from completed payments
     const revenue = payments
       .filter((p: any) => p.status === "completed")
@@ -83,8 +94,10 @@ export default function DashboardPage() {
       occupancyRate, 
       revenueThisMonth: revenue,
       todayRevenue,
+      monthlyRevenue,
       pendingBookings: pendingBookingsCount,
-      pendingEvents: pendingEventsCount
+      pendingEvents: pendingEventsCount,
+      totalBookings: bookings.length
     })
   }, [bookings, rooms, roomsWithAvailability, payments, events])
 
@@ -104,36 +117,57 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard title="Today's Check-ins" value={kpis.todayCheckIns} icon="CheckIn" trend="" />
         <KPICard title="Today's Check-outs" value={kpis.todayCheckOuts} icon="CheckOut" trend="" />
         <KPICard title="Today's Revenue" value={`KSh ${(kpis as any).todayRevenue?.toLocaleString() || 0}`} icon="Revenue" trend="" />
+        <KPICard title="Monthly Revenue" value={`KSh ${(kpis as any).monthlyRevenue?.toLocaleString() || 0}`} icon="Revenue" trend="" />
       </div>
 
       {/* Pending Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Link href="/admin/bookings">
-          <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
+          <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer relative">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-foreground mb-2">Pending Bookings</h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="font-semibold text-foreground">Pending Bookings</h3>
+                  {(kpis as any).pendingBookings > 0 && (
+                    <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-bold bg-red-500 text-white">
+                      {(kpis as any).pendingBookings > 99 ? "99+" : (kpis as any).pendingBookings}
+                    </span>
+                  )}
+                </div>
                 <p className="text-3xl font-bold text-foreground">{(kpis as any).pendingBookings || 0}</p>
               </div>
-              <div className="p-3 bg-accent/10 rounded-lg">
+              <div className="p-3 bg-accent/10 rounded-lg relative">
                 <Calendar className="w-8 h-8 text-accent" />
+                {(kpis as any).pendingBookings > 0 && (
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-card"></div>
+                )}
               </div>
             </div>
           </Card>
         </Link>
         <Link href="/admin/events">
-          <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
+          <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer relative">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-foreground mb-2">Pending Events</h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="font-semibold text-foreground">Pending Events</h3>
+                  {(kpis as any).pendingEvents > 0 && (
+                    <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-bold bg-red-500 text-white">
+                      {(kpis as any).pendingEvents > 99 ? "99+" : (kpis as any).pendingEvents}
+                    </span>
+                  )}
+                </div>
                 <p className="text-3xl font-bold text-foreground">{(kpis as any).pendingEvents || 0}</p>
               </div>
-              <div className="p-3 bg-accent/10 rounded-lg">
+              <div className="p-3 bg-accent/10 rounded-lg relative">
                 <AlertCircle className="w-8 h-8 text-accent" />
+                {(kpis as any).pendingEvents > 0 && (
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-card"></div>
+                )}
               </div>
             </div>
           </Card>
@@ -141,23 +175,17 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Links */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
         <Link href="/admin/bookings">
           <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
-            <h3 className="font-semibold text-foreground mb-2">View Bookings</h3>
-            <p className="text-sm text-muted-foreground">Manage all room and venue bookings</p>
-          </Card>
-        </Link>
-        <Link href="/admin/payments">
-          <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
-            <h3 className="font-semibold text-foreground mb-2">View Payments</h3>
-            <p className="text-sm text-muted-foreground">Track payment status and history</p>
-          </Card>
-        </Link>
-        <Link href="/admin/reports">
-          <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
-            <h3 className="font-semibold text-foreground mb-2">View Reports</h3>
-            <p className="text-sm text-muted-foreground">Generate occupancy and revenue reports</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-foreground mb-2">View Bookings</h3>
+                <p className="text-sm text-muted-foreground mb-2">Manage all room and venue bookings</p>
+                <p className="text-2xl font-bold text-foreground">{(kpis as any).totalBookings || bookings.length}</p>
+                <p className="text-xs text-muted-foreground">Total Bookings</p>
+              </div>
+            </div>
           </Card>
         </Link>
       </div>
