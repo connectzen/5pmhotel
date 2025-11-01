@@ -1060,10 +1060,12 @@ export default function BookingsPage() {
               <AlertTriangle className="w-6 h-6 text-red-500" />
               <AlertDialogTitle>Delete Booking</AlertDialogTitle>
             </div>
-            <AlertDialogDescription>
-              <span className="text-base font-semibold text-foreground block mb-2">
-                Are you sure you want to delete this booking?
-              </span>
+            <div className="space-y-2">
+              <AlertDialogDescription>
+                <span className="text-base font-semibold text-foreground block mb-2">
+                  Are you sure you want to delete this booking?
+                </span>
+              </AlertDialogDescription>
               <div className="text-sm text-muted-foreground">
                 This will:
               </div>
@@ -1075,7 +1077,7 @@ export default function BookingsPage() {
               <div className="text-sm font-semibold text-red-600 mt-3">
                 This action cannot be undone!
               </div>
-            </AlertDialogDescription>
+            </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setBookingToDelete(null)}>Cancel</AlertDialogCancel>
