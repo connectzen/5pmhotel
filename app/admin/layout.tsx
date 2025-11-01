@@ -1,0 +1,82 @@
+"use client"
+
+import type React from "react"
+
+import { AdminSidebar } from "@/components/admin/sidebar"
+import { AdminTopbar } from "@/components/admin/topbar"
+import { ThemeProvider } from "@/components/theme-provider"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { onAuthUser, getUserRole } from "@/lib/auth"
+
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark">
+      <AdminLayoutInner>{children}</AdminLayoutInner>
+    </ThemeProvider>
+  )
+}
+
+function AdminLayoutInner({ children }: { children: React.ReactNode }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [authorized, setAuthorized] = useState<boolean | null>(null)
+  const router = useRouter()
+
+  useEffect(() => {
+    const unsubscribe = onAuthUser(async (user) => {
+      if (!user) {
+        setAuthorized(false)
+        router.replace("/auth/signin")
+        return
+      }
+      const role = await getUserRole(user.uid)
+      if (role === "admin") {
+        setAuthorized(true)
+      } else {
+        setAuthorized(false)
+        router.replace("/auth/signin")
+      }
+    })
+    return () => unsubscribe()
+  }, [router])
+
+  if (authorized === null) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <span className="text-sm text-muted-foreground">Checking access…</span>
+      </div>
+    )
+  }
+
+  if (!authorized) {
+    return null
+  }
+
+  return (
+    <div className="dark flex h-screen bg-background">
+      {/* Desktop sidebar */}
+      <div className="hidden md:flex">
+        <AdminSidebar />
+      </div>
+
+      {/* Mobile sidebar (overlay) */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
+          <div className="absolute inset-y-0 left-0 w-64 shadow-xl">
+            <AdminSidebar />
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <AdminTopbar onToggleSidebar={() => setSidebarOpen((v) => !v)} />
+        <main className="flex-1 overflow-auto">{children}</main>
+      </div>
+    </div>
+  )
+}
