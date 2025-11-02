@@ -12,6 +12,7 @@ import { RoomDistributionChart } from "@/components/admin/room-distribution-char
 import { RevenueReportChart } from "@/components/admin/revenue-report-chart";
 import { collection, onSnapshot } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { parseISO, isValid, isToday, startOfDay } from "date-fns"
 
 export default function DashboardPage() {
   const [bookings, setBookings] = useState<any[]>([])
@@ -54,16 +55,113 @@ export default function DashboardPage() {
   }, [rooms, bookings])
 
   useEffect(() => {
-    const checkedIn = bookings.filter((b: any) => b.status === "checked-in").length
-    const checkedOut = bookings.filter((b: any) => b.status === "checked-out").length
-    // Calculate today's revenue from completed payments made today
     const today = new Date()
     today.setHours(0, 0, 0, 0)
+    
+    // Calculate today's check-ins: only count bookings checked in TODAY with completed payments
+    // This ensures consistency with revenue - if someone checked in but cancelled/no payment, don't count them
+    const todayCheckIns = bookings.filter((b: any) => {
+      // Must be checked-in status
+      if (b.status !== "checked-in") return false
+      // Exclude cancelled bookings
+      if (b.status === "cancelled") return false
+      
+      // Parse check-in date from booking
+      let checkInDate: Date | null = null
+      
+      // Try to get check-in date from booking.checkIn (ISO format)
+      if (b.checkIn) {
+        const parsed = parseISO(b.checkIn)
+        if (isValid(parsed)) {
+          checkInDate = parsed
+        }
+      }
+      
+      // If not found, try to parse from booking.dates (format: "DD/MM/YYYY - DD/MM/YYYY")
+      if (!checkInDate && b.dates) {
+        const dates = b.dates.split(" - ")
+        if (dates.length > 0) {
+          const checkInStr = dates[0].trim()
+          // Try parsing DD/MM/YYYY format
+          const checkInParts = checkInStr.split("/")
+          if (checkInParts.length === 3) {
+            const [day, month, year] = checkInParts
+            checkInDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+            if (isNaN(checkInDate.getTime())) checkInDate = null
+          }
+          // If DD/MM/YYYY parsing failed, try ISO format
+          if (!checkInDate) {
+            const parsed = parseISO(checkInStr)
+            if (isValid(parsed)) {
+              checkInDate = parsed
+            }
+          }
+        }
+      }
+      
+      // If we still don't have a date, we can't determine if it's today's check-in
+      if (!checkInDate) return false
+      
+      // Check if check-in date is today
+      const checkInStart = startOfDay(checkInDate)
+      if (!isToday(checkInStart)) return false
+      
+      // Verify booking has a completed payment to ensure consistency with revenue
+      const hasCompletedPayment = payments.some((p: any) => 
+        p.bookingId === b.id && 
+        p.type === "booking" && 
+        p.status === "completed"
+      )
+      
+      return hasCompletedPayment
+    }).length
+    
+    const checkedOut = bookings.filter((b: any) => b.status === "checked-out").length
+    
+    // Calculate today's revenue from completed payments created today
+    // Works for both bookings and events - uses same logic as monthly revenue
     const todayRevenue = payments
       .filter((p: any) => {
         if (p.status !== "completed") return false
-        const paymentDate = p.createdAt?.toDate ? p.createdAt.toDate() : (p.date ? new Date(p.date) : null)
+        
+        // Get payment date - prioritize date field for updated payments
+        // This ensures we use today's date when payments are approved/updated today
+        let paymentDate: Date | null = null
+        
+        // Priority 1: Check date field (string format like "YYYY-MM-DD") - for updated/approved payments today
+        // This is the most reliable for both bookings and events when they're approved today
+        if (p.date) {
+          // If date is a string in ISO format (YYYY-MM-DD), use parseISO
+          if (typeof p.date === 'string') {
+            // Check if it's ISO format (YYYY-MM-DD)
+            if (p.date.includes('-') && p.date.length === 10) {
+              paymentDate = parseISO(p.date)
+              // If parseISO fails, fallback to regular Date
+              if (!isValid(paymentDate)) {
+                paymentDate = new Date(p.date)
+              }
+            } else {
+              // Try parsing as regular date string
+              paymentDate = new Date(p.date)
+            }
+          } else if (p.date instanceof Date) {
+            paymentDate = p.date
+          } else {
+            paymentDate = new Date(p.date)
+          }
+        }
+        // Priority 2: Check createdAt timestamp (Firebase Timestamp) - for newly created payments
+        else if (p.createdAt?.toDate) {
+          paymentDate = p.createdAt.toDate()
+        }
+        // Priority 3: Check updatedAt (fallback for updated payments without date field)
+        else if (p.updatedAt?.toDate) {
+          paymentDate = p.updatedAt.toDate()
+        }
+        
         if (!paymentDate) return false
+        
+        // Normalize to start of day and compare with today
         paymentDate.setHours(0, 0, 0, 0)
         return paymentDate.getTime() === today.getTime()
       })
@@ -89,7 +187,7 @@ export default function DashboardPage() {
     const pendingBookingsCount = bookings.filter((b: any) => b.status === "pending").length
     const pendingEventsCount = events.filter((e: any) => e.status === "pending").length
     setKpis({ 
-      todayCheckIns: checkedIn, 
+      todayCheckIns: todayCheckIns, 
       todayCheckOuts: checkedOut, 
       occupancyRate, 
       revenueThisMonth: revenue,
@@ -159,8 +257,8 @@ export default function DashboardPage() {
                 <p className="text-4xl font-bold text-foreground group-hover:text-red-500 transition-colors">{(kpis as any).pendingBookings || 0}</p>
                 <p className="text-sm text-muted-foreground mt-2">Requires attention</p>
               </div>
-              <div className="p-4 bg-red-500/10 rounded-xl relative group-hover:bg-red-500/20 transition-all shadow-sm">
-                <Calendar className="w-8 h-8 text-red-500 group-hover:scale-110 transition-transform" />
+              <div className="p-4 bg-accent/10 rounded-xl relative group-hover:bg-accent/20 transition-all shadow-sm">
+                <Calendar className="w-8 h-8 text-accent group-hover:scale-110 transition-transform" />
                 {(kpis as any).pendingBookings > 0 && (
                   <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-card shadow-lg animate-ping"></div>
                 )}
@@ -184,8 +282,8 @@ export default function DashboardPage() {
                 <p className="text-4xl font-bold text-foreground group-hover:text-orange-500 transition-colors">{(kpis as any).pendingEvents || 0}</p>
                 <p className="text-sm text-muted-foreground mt-2">Requires attention</p>
               </div>
-              <div className="p-4 bg-orange-500/10 rounded-xl relative group-hover:bg-orange-500/20 transition-all shadow-sm">
-                <AlertCircle className="w-8 h-8 text-orange-500 group-hover:scale-110 transition-transform" />
+              <div className="p-4 bg-accent/10 rounded-xl relative group-hover:bg-accent/20 transition-all shadow-sm">
+                <AlertCircle className="w-8 h-8 text-accent group-hover:scale-110 transition-transform" />
                 {(kpis as any).pendingEvents > 0 && (
                   <div className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 rounded-full border-2 border-card shadow-lg animate-ping"></div>
                 )}

@@ -796,11 +796,99 @@ export default function BookingsPage() {
     setCheckinDialogOpen(false)
     
     try {
+      // Get today's date
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      
+      // Calculate checkout date based on original booking dates
+      let checkoutDate = new Date(today)
+      const originalCheckIn = bookingToAction.checkIn 
+        ? parseISO(bookingToAction.checkIn) 
+        : null
+      const originalCheckOut = bookingToAction.checkOut 
+        ? parseISO(bookingToAction.checkOut) 
+        : null
+      
+      // If we have original dates, calculate the number of nights
+      if (originalCheckIn && originalCheckOut && isValid(originalCheckIn) && isValid(originalCheckOut)) {
+        const nights = differenceInCalendarDays(originalCheckOut, originalCheckIn)
+        checkoutDate = addDays(today, nights)
+      } else if (bookingToAction.dates) {
+        // Try to parse from dates field
+        const dates = bookingToAction.dates.split(" - ")
+        if (dates.length === 2) {
+          const checkInStr = dates[0].trim()
+          const checkOutStr = dates[1].trim()
+          const checkInParts = checkInStr.split("/")
+          const checkOutParts = checkOutStr.split("/")
+          
+          if (checkInParts.length === 3 && checkOutParts.length === 3) {
+            const [dayIn, monthIn, yearIn] = checkInParts
+            const [dayOut, monthOut, yearOut] = checkOutParts
+            const origCheckIn = new Date(parseInt(yearIn), parseInt(monthIn) - 1, parseInt(dayIn))
+            const origCheckOut = new Date(parseInt(yearOut), parseInt(monthOut) - 1, parseInt(dayOut))
+            if (!isNaN(origCheckIn.getTime()) && !isNaN(origCheckOut.getTime())) {
+              const nights = differenceInCalendarDays(origCheckOut, origCheckIn)
+              checkoutDate = addDays(today, nights)
+            }
+          }
+        }
+      }
+      
+      // Format dates
+      const todayStr = format(today, 'yyyy-MM-dd')
+      const checkoutStr = format(checkoutDate, 'yyyy-MM-dd')
+      const datesStr = `${format(today, 'dd/MM/yyyy')} - ${format(checkoutDate, 'dd/MM/yyyy')}`
+      
+      // Update booking with today's check-in date
       await setDoc(
         doc(db, "bookings", bookingToAction.id),
-        { status: "checked-in", updatedAt: serverTimestamp() },
+        { 
+          status: "checked-in", 
+          checkIn: todayStr,
+          checkOut: checkoutStr,
+          dates: datesStr,
+          updatedAt: serverTimestamp() 
+        },
         { merge: true }
       )
+      
+      // Ensure payment exists and is completed for this booking
+      const paymentsQuery = query(
+        collection(db, "payments"),
+        where("bookingId", "==", bookingToAction.id),
+        where("type", "==", "booking")
+      )
+      const paymentsSnapshot = await getDocs(paymentsQuery)
+      
+      if (paymentsSnapshot.empty) {
+        // If no payment exists, create one with the booking amount
+        await addDoc(collection(db, "payments"), {
+          bookingId: bookingToAction.id,
+          type: "booking",
+          amount: bookingToAction.amount || 0,
+          method: bookingToAction.paymentMethod || "mpesa",
+          status: "completed",
+          date: todayStr,
+          customerName: bookingToAction.customer || "",
+          room: bookingToAction.room || "",
+          notes: "Payment processed upon check-in",
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        })
+      } else {
+        // Update existing payment to ensure it's completed
+        const existingPayment = paymentsSnapshot.docs[0]
+        await setDoc(
+          doc(db, "payments", existingPayment.id),
+          {
+            status: "completed",
+            date: todayStr,
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        )
+      }
     } catch (error) {
       console.error("Failed to check in booking:", error)
       alert("Failed to check in booking. Please try again.")
