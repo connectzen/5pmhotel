@@ -332,19 +332,13 @@ export default function DashboardPage() {
   }, [bookings, rooms, roomsWithAvailability, payments, events])
 
   return (
-    <div className="p-6 space-y-8 bg-background min-h-screen">
+    <div className="h-full flex flex-col min-w-0">
+      <div className="p-6 space-y-8 bg-background flex-1 overflow-y-auto">
       {/* Header */}
       <div className="flex items-center justify-between pb-6 border-b border-border/50">
         <div>
           <h1 className="text-4xl font-bold text-foreground mb-2 font-serif">Dashboard</h1>
           <p className="text-muted-foreground text-lg">Welcome back to 5PM Hotel Admin</p>
-        </div>
-        <div className="flex gap-3">
-          <Link href="/admin/bookings">
-            <Button className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-md hover:shadow-lg transition-all">
-              View Bookings
-            </Button>
-          </Link>
         </div>
       </div>
 
@@ -354,10 +348,9 @@ export default function DashboardPage() {
           <Card className="p-6 hover:shadow-xl transition-all duration-300 cursor-pointer border-l-4 border-l-primary bg-gradient-to-br from-card to-card/95 group">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <h3 className="font-semibold text-foreground mb-2 text-lg group-hover:text-primary transition-colors">Available Rooms</h3>
-                <p className="text-sm text-muted-foreground mb-4">Browse and manage all available room accommodations</p>
+                <h3 className="font-semibold text-foreground mb-4 text-lg group-hover:text-primary transition-colors">Available Rooms</h3>
                 <div className="flex items-baseline gap-2">
-                  <p className="text-3xl font-bold text-foreground group-hover:text-accent transition-colors">
+                  <p className="text-3xl font-bold text-foreground group-hover:text-accent transition-colors animate-pulse-tick">
                     {roomsWithAvailability.reduce((sum: number, r: any) => sum + (r.availableCount || 0), 0)}
                   </p>
                   <p className="text-sm text-muted-foreground">Rooms Available</p>
@@ -511,6 +504,7 @@ export default function DashboardPage() {
           </div>
           <RevenueReportChart payments={payments} reportType="monthly" timeRange={timeRange} />
         </Card>
+      </div>
       </div>
     </div>
   )

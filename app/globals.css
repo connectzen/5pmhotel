@@ -355,4 +355,20 @@
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
   }
+  
+  /* Watch-like tick animation - expands up then down like seconds on a watch */
+  @keyframes pulse-tick {
+    0%, 100% {
+      transform: scaleY(1);
+    }
+    50% {
+      transform: scaleY(1.15);
+    }
+  }
+  
+  .animate-pulse-tick {
+    animation: pulse-tick 1s ease-in-out infinite;
+    transform-origin: bottom center;
+    display: inline-block;
+  }
 }
