@@ -8,6 +8,7 @@ import { useState, useEffect, useMemo } from "react"
 import { collection, onSnapshot } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { differenceInCalendarDays, parseISO, isValid } from "date-fns"
+import { TimePicker } from "@/components/admin/time-picker"
 
 interface BookingEditModalProps {
   booking: Booking
@@ -19,6 +20,8 @@ export function BookingEditModal({ booking, onSave, onClose }: BookingEditModalP
   const [form, setForm] = useState<Booking>({ ...booking })
   const [rooms, setRooms] = useState<any[]>([])
   const [selectedRoomId, setSelectedRoomId] = useState<string>("")
+  const [checkInTime, setCheckInTime] = useState<string>((booking as any).checkInTime || "")
+  const [checkOutTime, setCheckOutTime] = useState<string>((booking as any).checkOutTime || (booking as any).checkoutTime || "")
 
   // Load rooms from Firebase
   useEffect(() => {
@@ -190,16 +193,54 @@ export function BookingEditModal({ booking, onSave, onClose }: BookingEditModalP
                 </p>
               )}
             </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2 text-foreground">
+                Check-in Time
+              </label>
+              <TimePicker
+                value={checkInTime}
+                onChange={(time) => {
+                  setCheckInTime(time)
+                  // Auto-set checkout time if not already set
+                  if (time && !checkOutTime) {
+                    setCheckOutTime("11:00")
+                  }
+                }}
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Set the check-in time for this booking</p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2 text-foreground">
+                Check-out Time
+              </label>
+              <TimePicker
+                value={checkOutTime || "11:00"}
+                onChange={(time) => {
+                  setCheckOutTime(time)
+                }}
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Set the check-out time for this booking (default: 11:00 AM)</p>
+            </div>
           </div>
 
           <div className="mt-6 flex gap-2">
             <Button variant="outline" onClick={onClose} className="flex-1 bg-transparent">Cancel</Button>
             <Button
               onClick={() => {
-                onSave(form)
+                // Include times in the saved booking
+                const updatedBooking = {
+                  ...form,
+                  checkInTime: checkInTime || null,
+                  checkOutTime: checkOutTime || null,
+                }
+                onSave(updatedBooking as Booking)
                 onClose()
               }}
-              className="flex-1"
+              className="flex-1 hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
             >
               Save Changes
             </Button>

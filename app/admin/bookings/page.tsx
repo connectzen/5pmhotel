@@ -638,7 +638,14 @@ export default function BookingsPage() {
   }
 
   const handleEditSave = (next: any) => {
-    setDoc(doc(db, "bookings", next.id), { ...next, updatedAt: serverTimestamp() }, { merge: true })
+    // Ensure times are saved with the booking
+    const updateData: any = {
+      ...next,
+      checkInTime: next.checkInTime || null,
+      checkOutTime: next.checkOutTime || null,
+      updatedAt: serverTimestamp(),
+    }
+    setDoc(doc(db, "bookings", next.id), updateData, { merge: true })
   }
 
   const handleCheckout = async (isMistake: boolean) => {
