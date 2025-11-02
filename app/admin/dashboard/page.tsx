@@ -120,7 +120,7 @@ export default function DashboardPage() {
 
       {/* Available Rooms Card - First Priority */}
       <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-        <Link href="/admin/rooms">
+        <Link href="/admin/rooms?filter=available">
           <Card className="p-6 hover:shadow-xl transition-all duration-300 cursor-pointer border-l-4 border-l-primary bg-gradient-to-br from-card to-card/95 group">
             <div className="flex items-center justify-between">
               <div className="flex-1">

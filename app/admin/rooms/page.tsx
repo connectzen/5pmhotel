@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { RoomsTable } from "@/components/admin/rooms-table"
 import { RoomFormModal } from "@/components/admin/room-form-modal"
@@ -8,6 +9,7 @@ import { Plus, AlertTriangle, Trash2 } from "lucide-react"
 import { collection, onSnapshot, addDoc, deleteDoc, doc, setDoc, serverTimestamp } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import type { Room } from "@/lib/admin-store"
+import { Card } from "@/components/ui/card"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,13 +22,22 @@ import {
 } from "@/components/ui/alert-dialog"
 
 export default function RoomsPage() {
+  const searchParams = useSearchParams()
   const [rooms, setRooms] = useState<Room[]>([])
+  const [bookings, setBookings] = useState<any[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editingRoom, setEditingRoom] = useState<Room | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [roomToDelete, setRoomToDelete] = useState<string | null>(null)
+  const [availabilityFilter, setAvailabilityFilter] = useState<"all" | "available" | "out-of-stock">(() => {
+    const filter = searchParams.get("filter")
+    if (filter === "available" || filter === "out-of-stock") {
+      return filter
+    }
+    return "all"
+  })
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "rooms"), (snap) => {
@@ -35,6 +46,41 @@ export default function RoomsPage() {
     })
     return () => unsub()
   }, [])
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "bookings"), (snap) => {
+      setBookings(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })))
+    })
+    return () => unsub()
+  }, [])
+
+  // Calculate availability for each room
+  const roomsWithAvailability = useMemo(() => {
+    return rooms.map((room) => {
+      const bookedCount = bookings.filter(
+        (b: any) => b.room === room.name && (b.status === "approved" || b.status === "checked-in")
+      ).length
+      const availableCount = Math.max(0, (room.quantity ?? 0) - bookedCount)
+      const isAvailable = availableCount > 0
+      const isOutOfStock = (room.quantity ?? 0) === 0 || availableCount === 0
+      
+      return {
+        ...room,
+        bookedCount,
+        availableCount,
+        isAvailable,
+        isOutOfStock,
+      }
+    })
+  }, [rooms, bookings])
+
+  // Filter rooms based on availability filter
+  const filteredRooms = useMemo(() => {
+    if (availabilityFilter === "all") return roomsWithAvailability
+    if (availabilityFilter === "available") return roomsWithAvailability.filter((r) => r.isAvailable)
+    if (availabilityFilter === "out-of-stock") return roomsWithAvailability.filter((r) => r.isOutOfStock)
+    return roomsWithAvailability
+  }, [roomsWithAvailability, availabilityFilter])
 
   const handleSaveRoom = async (room: Room) => {
     const { id, ...data } = room
@@ -105,9 +151,42 @@ export default function RoomsPage() {
       {/* Error */}
       {error && <p className="text-sm text-red-500">{error}</p>}
 
+      {/* Availability Filter */}
+      <Card className="p-4">
+        <div className="flex items-center gap-4">
+          <span className="text-sm font-medium text-foreground">Filter by Availability:</span>
+          <div className="flex gap-2">
+            <Button
+              variant={availabilityFilter === "all" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setAvailabilityFilter("all")}
+              className="hover:scale-105 transition-transform duration-200"
+            >
+              All Rooms ({roomsWithAvailability.length})
+            </Button>
+            <Button
+              variant={availabilityFilter === "available" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setAvailabilityFilter("available")}
+              className="hover:scale-105 transition-transform duration-200"
+            >
+              Available ({roomsWithAvailability.filter((r) => r.isAvailable).length})
+            </Button>
+            <Button
+              variant={availabilityFilter === "out-of-stock" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setAvailabilityFilter("out-of-stock")}
+              className="hover:scale-105 transition-transform duration-200"
+            >
+              Out of Stock ({roomsWithAvailability.filter((r) => r.isOutOfStock).length})
+            </Button>
+          </div>
+        </div>
+      </Card>
+
       {/* Rooms Table */}
       <RoomsTable
-        rooms={rooms}
+        rooms={filteredRooms}
         busyId={busyId ?? undefined}
         onEdit={(room) => {
           setEditingRoom(room)

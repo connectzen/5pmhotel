@@ -4,10 +4,17 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import type { Room } from "@/lib/admin-store"
-import { Edit, Trash2 } from "lucide-react"
+import { Edit, Trash2, CheckCircle2, XCircle, AlertCircle } from "lucide-react"
+
+interface RoomWithAvailability extends Room {
+  availableCount?: number
+  bookedCount?: number
+  isAvailable?: boolean
+  isOutOfStock?: boolean
+}
 
 interface RoomsTableProps {
-  rooms: Room[]
+  rooms: RoomWithAvailability[]
   onEdit: (room: Room) => void
   onDelete: (roomId: string) => void
   busyId?: string
@@ -24,6 +31,7 @@ export function RoomsTable({ rooms, onEdit, onDelete, busyId }: RoomsTableProps)
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Room Type</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Capacity</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Quantity</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Availability</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Price (KES)</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Amenities</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Status</th>
@@ -32,7 +40,14 @@ export function RoomsTable({ rooms, onEdit, onDelete, busyId }: RoomsTableProps)
           </thead>
           <tbody className="divide-y divide-border">
             {rooms.map((room, idx) => (
-              <tr key={(room.id || room.name || "room") + "-" + idx} className="hover:bg-muted/50 transition-colors">
+              <tr 
+                key={(room.id || room.name || "room") + "-" + idx} 
+                className={`hover:bg-muted/50 transition-colors ${
+                  room.isOutOfStock ? "opacity-75" : ""
+                } ${
+                  room.isAvailable && !room.isOutOfStock ? "border-l-4 border-l-green-500" : ""
+                }`}
+              >
                 <td className="px-6 py-4">
                   <div className="w-12 h-12 rounded overflow-hidden bg-muted">
                     {Boolean((room as any).image || (room.images && room.images[0])) ? (
@@ -48,7 +63,32 @@ export function RoomsTable({ rooms, onEdit, onDelete, busyId }: RoomsTableProps)
                 </td>
                 <td className="px-6 py-4 text-sm font-medium text-foreground">{room.name}</td>
                 <td className="px-6 py-4 text-sm text-foreground">{room.capacity} guests</td>
-                <td className="px-6 py-4 text-sm text-foreground font-medium">{room.quantity ?? 0}</td>
+                <td className="px-6 py-4 text-sm text-foreground font-medium">
+                  <div className="flex items-center gap-2">
+                    <span>{room.quantity ?? 0}</span>
+                    {room.bookedCount !== undefined && room.bookedCount > 0 && (
+                      <span className="text-xs text-muted-foreground">({room.bookedCount} booked)</span>
+                    )}
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  {room.isOutOfStock ? (
+                    <Badge className="bg-red-100 text-red-800 border-red-300 flex items-center gap-1 w-fit">
+                      <XCircle className="w-3 h-3" />
+                      Out of Stock
+                    </Badge>
+                  ) : room.isAvailable ? (
+                    <Badge className="bg-green-100 text-green-800 border-green-300 flex items-center gap-1 w-fit">
+                      <CheckCircle2 className="w-3 h-3" />
+                      {room.availableCount ?? 0} Available
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 flex items-center gap-1 w-fit">
+                      <AlertCircle className="w-3 h-3" />
+                      Low Stock
+                    </Badge>
+                  )}
+                </td>
                 <td className="px-6 py-4 text-sm font-medium text-foreground">{(room.price ?? 0).toLocaleString()}</td>
                 <td className="px-6 py-4 text-sm">
                   <div className="flex flex-wrap gap-1">
