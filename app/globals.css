@@ -171,19 +171,28 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans, "Open Sans", sans-serif);
-    /* Prevent page-level scrolling - let individual containers handle scrolling */
+    /* Allow normal scrolling for frontend pages */
     overflow-x: hidden;
-    overflow-y: hidden;
-    height: 100vh;
+    overflow-y: auto;
   }
   
   /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
-    /* Prevent page-level scrolling */
+    /* Allow normal scrolling for frontend pages */
     overflow-x: hidden;
-    overflow-y: hidden;
-    height: 100%;
+    overflow-y: auto;
+  }
+  
+  /* Admin layout - prevent body scrolling when in admin pages */
+  body.admin-layout-active {
+    overflow-y: hidden !important;
+    height: 100vh !important;
+  }
+  
+  html.admin-layout-active {
+    overflow-y: hidden !important;
+    height: 100% !important;
   }
   
   /* Show horizontal scrollbars for table containers and overflow elements */

@@ -26,7 +26,7 @@ export function FeaturedRooms() {
           <p className="text-foreground/70 text-lg">Discover our available accommodations</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {rooms.map((room) => (
             <Link key={room.id} href={`/rooms/${room.id}`}>
               <div className="bg-card rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer group border border-border/50 hover:border-accent/50">

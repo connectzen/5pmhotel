@@ -25,7 +25,7 @@ export function VenuesPreview() {
           <p className="text-foreground/70 text-lg">Host your perfect event in our stunning spaces</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {venues.map((venue) => (
             <Link key={venue.id} href={`/venues/${venue.id}`}>
               <div className="bg-card rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-105 hover:-translate-y-1 group">

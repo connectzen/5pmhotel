@@ -59,6 +59,18 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     }
   }, [sidebarCollapsed])
 
+  // Add class to body and html to prevent scrolling when in admin pages
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      document.body.classList.add("admin-layout-active")
+      document.documentElement.classList.add("admin-layout-active")
+      return () => {
+        document.body.classList.remove("admin-layout-active")
+        document.documentElement.classList.remove("admin-layout-active")
+      }
+    }
+  }, [])
+
   if (authorized === null) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -97,7 +109,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
           sidebarCollapsed={sidebarCollapsed}
         />
-        <main className="flex-1 overflow-y-auto overflow-x-auto min-w-0">{children}</main>
+        <main className="flex-1 overflow-hidden min-w-0 flex flex-col">{children}</main>
       </div>
     </div>
   )
