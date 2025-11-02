@@ -97,28 +97,28 @@ export function BookingEditModal({ booking, onSave, onClose }: BookingEditModalP
   }, [selectedRoomId, nights, rooms])
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-md">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-foreground">Edit Booking</h2>
-            <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-              <X className="w-5 h-5" />
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[100] overflow-y-auto">
+      <Card className="w-full max-w-md my-4 shadow-xl">
+        <div className="p-4 sm:p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-foreground">Edit Booking</h2>
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground p-1">
+              <X className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3 max-h-[calc(100vh-12rem)] overflow-y-auto pr-2">
             <div>
-              <label className="block text-sm font-medium mb-2 text-foreground">Customer <span className="text-red-500">*</span></label>
+              <label className="block text-xs sm:text-sm font-medium mb-1.5 text-foreground">Customer <span className="text-red-500">*</span></label>
               <input
-                className="w-full px-3 py-2 border border-border rounded-lg bg-secondary text-foreground"
+                className="w-full px-2.5 py-1.5 text-sm border border-border rounded-lg bg-secondary text-foreground"
                 value={form.customer}
                 onChange={(e) => setForm({ ...form, customer: e.target.value })}
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2 text-foreground">Select Room <span className="text-red-500">*</span></label>
+              <label className="block text-xs sm:text-sm font-medium mb-1.5 text-foreground">Select Room <span className="text-red-500">*</span></label>
               <select
                 value={selectedRoomId}
                 onChange={(e) => {
@@ -129,7 +129,7 @@ export function BookingEditModal({ booking, onSave, onClose }: BookingEditModalP
                     setForm(prev => ({ ...prev, room: selectedRoom.name, amount: calculatedAmount }))
                   }
                 }}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-secondary text-foreground"
+                className="w-full px-2.5 py-1.5 text-sm border border-border rounded-lg bg-secondary text-foreground"
                 required
               >
                 <option value="">-- Select Room --</option>
@@ -146,9 +146,9 @@ export function BookingEditModal({ booking, onSave, onClose }: BookingEditModalP
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2 text-foreground">Dates <span className="text-red-500">*</span></label>
+              <label className="block text-xs sm:text-sm font-medium mb-1.5 text-foreground">Dates <span className="text-red-500">*</span></label>
               <input
-                className="w-full px-3 py-2 border border-border rounded-lg bg-secondary text-foreground"
+                className="w-full px-2.5 py-1.5 text-sm border border-border rounded-lg bg-secondary text-foreground"
                 value={form.dates}
                 onChange={(e) => {
                   setForm({ ...form, dates: e.target.value })
@@ -195,7 +195,7 @@ export function BookingEditModal({ booking, onSave, onClose }: BookingEditModalP
             </div>
             
             <div>
-              <label className="block text-sm font-medium mb-2 text-foreground">
+              <label className="block text-xs sm:text-sm font-medium mb-1.5 text-foreground">
                 Check-in Time
               </label>
               <TimePicker
@@ -213,7 +213,7 @@ export function BookingEditModal({ booking, onSave, onClose }: BookingEditModalP
             </div>
             
             <div>
-              <label className="block text-sm font-medium mb-2 text-foreground">
+              <label className="block text-xs sm:text-sm font-medium mb-1.5 text-foreground">
                 Check-out Time
               </label>
               <TimePicker
@@ -227,7 +227,7 @@ export function BookingEditModal({ booking, onSave, onClose }: BookingEditModalP
             </div>
           </div>
 
-          <div className="mt-6 flex gap-2">
+          <div className="mt-4 flex gap-2 pt-4 border-t border-border">
             <Button variant="outline" onClick={onClose} className="flex-1 bg-transparent">Cancel</Button>
             <Button
               onClick={() => {

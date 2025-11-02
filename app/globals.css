@@ -235,6 +235,24 @@
   }
 }
 
+/* Modal constraints - ensure modals stay compact regardless of sidebar state */
+@layer utilities {
+  /* Force modal cards inside fixed overlay containers to respect max-width */
+  div.fixed.inset-0[class*="flex items-center"] [data-slot="card"] {
+    max-width: 28rem !important; /* max-w-md = 28rem */
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  
+  /* Additional constraint for z-index specific modals */
+  div.fixed[class*="z-"] [data-slot="card"][class*="max-w-md"] {
+    max-width: 28rem !important;
+    width: 100% !important;
+  }
+}
+
 /* Responsive card layouts - automatically handles mobile, tablet, desktop */
 @layer utilities {
   /* Global responsive card container - automatically stacks on mobile */

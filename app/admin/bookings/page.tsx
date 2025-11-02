@@ -10,7 +10,7 @@ import { BookingEditModal } from "@/components/admin/booking-edit-modal"
 import { BookingDetailModal } from "@/components/admin/booking-detail-modal"
 import { CreateBookingModal } from "@/components/admin/create-booking-modal"
 import { TimePicker } from "@/components/admin/time-picker"
-import { Search, X, Loader2, AlertTriangle, Plus } from "lucide-react"
+import { Search, X, Loader2, AlertTriangle, Plus, XCircle, LogIn } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,6 +56,10 @@ export default function BookingsPage() {
   const [createBookingModalOpen, setCreateBookingModalOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [bookingToDelete, setBookingToDelete] = useState<string | null>(null)
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
+  const [checkinDialogOpen, setCheckinDialogOpen] = useState(false)
+  const [bookingToAction, setBookingToAction] = useState<any | null>(null)
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "bookings"), (snap) => {
@@ -504,49 +508,30 @@ export default function BookingsPage() {
     const existing = bookings.find((b) => b.id === bookingId)
     if (!existing) return
     
-    // If approving a cancelled booking (reapproving), set to pending for review
-    if (newStatus === "approved" && existing.status === "cancelled") {
-      try {
-        await setDoc(
-          doc(db, "bookings", bookingId),
-          { status: "pending", updatedAt: serverTimestamp() },
-          { merge: true }
-        )
-        
-        // Update payment status to pending if payment exists
-        try {
-          const paymentsQuery = query(
-            collection(db, "payments"),
-            where("bookingId", "==", bookingId),
-            where("type", "==", "booking")
-          )
-          const paymentsSnapshot = await getDocs(paymentsQuery)
-          
-          if (!paymentsSnapshot.empty) {
-            const paymentDoc = paymentsSnapshot.docs[0]
-            await setDoc(
-              doc(db, "payments", paymentDoc.id),
-              {
-                status: "pending",
-                notes: "Booking was reapproved and needs review",
-                updatedAt: serverTimestamp(),
-              },
-              { merge: true }
-            )
-          }
-        } catch (paymentError) {
-          console.warn("Failed to update payment entry:", paymentError)
-        }
-      } catch (error) {
-        console.error("Failed to reapprove booking:", error)
-        alert("Failed to reapprove booking. Please try again.")
-      }
+    // If approving (pending, rejected, or cancelled) - always show approval modal
+    if (newStatus === "approved" && existing.status !== "approved") {
+      openApprovalModal(existing)
       return
     }
     
-    // If approving a new booking or re-approving a rejected booking, open approval modal
-    if (newStatus === "approved" && (existing.status !== "approved" || existing.status === "rejected")) {
-      openApprovalModal(existing)
+    // If rejecting, show confirmation dialog
+    if (newStatus === "rejected") {
+      setBookingToAction(existing)
+      setRejectDialogOpen(true)
+      return
+    }
+    
+    // If cancelling, show confirmation dialog
+    if (newStatus === "cancelled") {
+      setBookingToAction(existing)
+      setCancelDialogOpen(true)
+      return
+    }
+    
+    // If checking in, show confirmation dialog
+    if (newStatus === "checked-in" && existing.status === "approved") {
+      setBookingToAction(existing)
+      setCheckinDialogOpen(true)
       return
     }
     
@@ -557,80 +542,15 @@ export default function BookingsPage() {
       return
     }
     
+    // This section handles any remaining direct status updates
+    // Most actions now go through confirmation dialogs above
+    // This should rarely be reached now since all major actions have confirmations
     try {
       await setDoc(
         doc(db, "bookings", bookingId),
         { status: newStatus, updatedAt: serverTimestamp() },
         { merge: true }
       )
-      
-      // Update or create payment entries based on status
-      if (newStatus === "rejected" || newStatus === "cancelled") {
-        try {
-          // Check if payment already exists
-          const paymentsQuery = query(
-            collection(db, "payments"),
-            where("bookingId", "==", existing.id),
-            where("type", "==", "booking")
-          )
-          const paymentsSnapshot = await getDocs(paymentsQuery)
-          
-          if (!paymentsSnapshot.empty) {
-            // Update existing payment to failed
-            const paymentDoc = paymentsSnapshot.docs[0]
-            await setDoc(
-              doc(db, "payments", paymentDoc.id),
-              {
-                status: "failed",
-                notes: `Booking was ${newStatus}`,
-                updatedAt: serverTimestamp(),
-              },
-              { merge: true }
-            )
-          } else {
-            // Create failed payment entry
-            await addDoc(collection(db, "payments"), {
-              bookingId: existing.id,
-              type: "booking",
-              amount: existing.amount ?? 0,
-              method: "cash",
-              status: "failed",
-              date: new Date().toISOString().slice(0, 10),
-              customerName: existing.customer || "",
-              room: existing.room || "",
-              notes: `Booking was ${newStatus}`,
-              createdAt: serverTimestamp(),
-            })
-          }
-        } catch (paymentError) {
-          console.warn("Failed to update payment entry:", paymentError)
-        }
-      } else if (newStatus === "checked-out") {
-        // When checked out, ensure payment is completed
-        try {
-          const paymentsQuery = query(
-            collection(db, "payments"),
-            where("bookingId", "==", existing.id),
-            where("type", "==", "booking")
-          )
-          const paymentsSnapshot = await getDocs(paymentsQuery)
-          
-          if (!paymentsSnapshot.empty) {
-            const paymentDoc = paymentsSnapshot.docs[0]
-            await setDoc(
-              doc(db, "payments", paymentDoc.id),
-              {
-                status: "completed",
-                notes: "Booking checked out",
-                updatedAt: serverTimestamp(),
-              },
-              { merge: true }
-            )
-          }
-        } catch (paymentError) {
-          console.warn("Failed to update payment on check-out:", paymentError)
-        }
-      }
     } catch (error) {
       console.error("Failed to update booking status:", error)
       alert("Failed to update booking status. Please try again.")
@@ -754,6 +674,139 @@ export default function BookingsPage() {
   const handleDeleteClick = (bookingId: string) => {
     setBookingToDelete(bookingId)
     setDeleteDialogOpen(true)
+  }
+
+  const handleRejectConfirm = async () => {
+    if (!bookingToAction) return
+    
+    setRejectDialogOpen(false)
+    
+    try {
+      await setDoc(
+        doc(db, "bookings", bookingToAction.id),
+        { status: "rejected", updatedAt: serverTimestamp() },
+        { merge: true }
+      )
+      
+      // Update or create payment entries
+      try {
+        const paymentsQuery = query(
+          collection(db, "payments"),
+          where("bookingId", "==", bookingToAction.id),
+          where("type", "==", "booking")
+        )
+        const paymentsSnapshot = await getDocs(paymentsQuery)
+        
+        if (!paymentsSnapshot.empty) {
+          const paymentDoc = paymentsSnapshot.docs[0]
+          await setDoc(
+            doc(db, "payments", paymentDoc.id),
+            {
+              status: "failed",
+              notes: "Booking was rejected",
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true }
+          )
+        } else {
+          await addDoc(collection(db, "payments"), {
+            bookingId: bookingToAction.id,
+            type: "booking",
+            amount: bookingToAction.amount ?? 0,
+            method: "cash",
+            status: "failed",
+            date: new Date().toISOString().slice(0, 10),
+            customerName: bookingToAction.customer || "",
+            room: bookingToAction.room || "",
+            notes: "Booking was rejected",
+            createdAt: serverTimestamp(),
+          })
+        }
+      } catch (paymentError) {
+        console.warn("Failed to update payment entry:", paymentError)
+      }
+    } catch (error) {
+      console.error("Failed to reject booking:", error)
+      alert("Failed to reject booking. Please try again.")
+    } finally {
+      setBookingToAction(null)
+    }
+  }
+
+  const handleCancelConfirm = async () => {
+    if (!bookingToAction) return
+    
+    setCancelDialogOpen(false)
+    
+    try {
+      await setDoc(
+        doc(db, "bookings", bookingToAction.id),
+        { status: "cancelled", updatedAt: serverTimestamp() },
+        { merge: true }
+      )
+      
+      // Update or create payment entries
+      try {
+        const paymentsQuery = query(
+          collection(db, "payments"),
+          where("bookingId", "==", bookingToAction.id),
+          where("type", "==", "booking")
+        )
+        const paymentsSnapshot = await getDocs(paymentsQuery)
+        
+        if (!paymentsSnapshot.empty) {
+          const paymentDoc = paymentsSnapshot.docs[0]
+          await setDoc(
+            doc(db, "payments", paymentDoc.id),
+            {
+              status: "failed",
+              notes: "Booking was cancelled",
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true }
+          )
+        } else {
+          await addDoc(collection(db, "payments"), {
+            bookingId: bookingToAction.id,
+            type: "booking",
+            amount: bookingToAction.amount ?? 0,
+            method: "cash",
+            status: "failed",
+            date: new Date().toISOString().slice(0, 10),
+            customerName: bookingToAction.customer || "",
+            room: bookingToAction.room || "",
+            notes: "Booking was cancelled",
+            createdAt: serverTimestamp(),
+          })
+        }
+      } catch (paymentError) {
+        console.warn("Failed to update payment entry:", paymentError)
+      }
+    } catch (error) {
+      console.error("Failed to cancel booking:", error)
+      alert("Failed to cancel booking. Please try again.")
+    } finally {
+      setBookingToAction(null)
+    }
+  }
+
+  const handleCheckinConfirm = async () => {
+    if (!bookingToAction) return
+    
+    setCheckinDialogOpen(false)
+    
+    try {
+      await setDoc(
+        doc(db, "bookings", bookingToAction.id),
+        { status: "checked-in", updatedAt: serverTimestamp() },
+        { merge: true }
+      )
+    } catch (error) {
+      console.error("Failed to check in booking:", error)
+      alert("Failed to check in booking. Please try again.")
+    } finally {
+      setBookingToAction(null)
+    }
   }
 
   const handleDeleteConfirm = async () => {
@@ -1210,6 +1263,139 @@ export default function BookingsPage() {
           setCreateBookingModalOpen(false)
         }}
       />
+
+      {/* Reject Confirmation Dialog */}
+      <AlertDialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <XCircle className="w-6 h-6 text-red-500" />
+              <AlertDialogTitle>Reject Booking</AlertDialogTitle>
+            </div>
+            <div className="space-y-2">
+              <AlertDialogDescription>
+                <span className="text-base font-semibold text-foreground block mb-2">
+                  Are you sure you want to reject this booking?
+                </span>
+              </AlertDialogDescription>
+              <div className="text-sm text-muted-foreground">
+                Booking Details:
+              </div>
+              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
+                <li>Customer: {bookingToAction?.customer}</li>
+                <li>Room: {bookingToAction?.room}</li>
+                <li>Dates: {bookingToAction?.dates}</li>
+              </ul>
+              <div className="text-sm text-muted-foreground mt-3">
+                This will:
+              </div>
+              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-1">
+                <li>Move the booking to "Rejected" status</li>
+                <li>Mark the payment as "Failed"</li>
+                <li>Notify the customer about the rejection</li>
+              </ul>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setBookingToAction(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRejectConfirm}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Yes, Reject Booking
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Cancel Confirmation Dialog */}
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <XCircle className="w-6 h-6 text-orange-500" />
+              <AlertDialogTitle>Cancel Booking</AlertDialogTitle>
+            </div>
+            <div className="space-y-2">
+              <AlertDialogDescription>
+                <span className="text-base font-semibold text-foreground block mb-2">
+                  Are you sure you want to cancel this booking?
+                </span>
+              </AlertDialogDescription>
+              <div className="text-sm text-muted-foreground">
+                Booking Details:
+              </div>
+              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
+                <li>Customer: {bookingToAction?.customer}</li>
+                <li>Room: {bookingToAction?.room}</li>
+                <li>Dates: {bookingToAction?.dates}</li>
+              </ul>
+              <div className="text-sm text-muted-foreground mt-3">
+                This will:
+              </div>
+              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-1">
+                <li>Move the booking to "Cancelled" status</li>
+                <li>Mark the payment as "Failed"</li>
+                <li>Make the room available again</li>
+              </ul>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setBookingToAction(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelConfirm}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              Yes, Cancel Booking
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Check-in Confirmation Dialog */}
+      <AlertDialog open={checkinDialogOpen} onOpenChange={setCheckinDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <LogIn className="w-6 h-6 text-blue-500" />
+              <AlertDialogTitle>Check-in Booking</AlertDialogTitle>
+            </div>
+            <div className="space-y-2">
+              <AlertDialogDescription>
+                <span className="text-base font-semibold text-foreground block mb-2">
+                  Are you sure you want to check in this guest?
+                </span>
+              </AlertDialogDescription>
+              <div className="text-sm text-muted-foreground">
+                Booking Details:
+              </div>
+              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
+                <li>Customer: {bookingToAction?.customer}</li>
+                <li>Room: {bookingToAction?.room}</li>
+                <li>Dates: {bookingToAction?.dates}</li>
+                <li>Amount: KES {bookingToAction?.amount?.toLocaleString()}</li>
+              </ul>
+              <div className="text-sm text-muted-foreground mt-3">
+                This will:
+              </div>
+              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-1">
+                <li>Change booking status to "Checked-In"</li>
+                <li>Mark the room as occupied</li>
+                <li>Record the check-in time</li>
+              </ul>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setBookingToAction(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCheckinConfirm}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Yes, Check In
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

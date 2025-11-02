@@ -37,59 +37,59 @@ export function BookingDetailModal({ booking, onClose, onStatusChange, onApprove
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-md">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-foreground">Booking Details</h2>
-            <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-              <X className="w-5 h-5" />
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[100] overflow-y-auto">
+      <Card className="w-full max-w-md my-4 shadow-xl">
+        <div className="p-4 sm:p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-foreground">Booking Details</h2>
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground p-1">
+              <X className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div>
-              <p className="text-sm text-muted-foreground">Booking ID</p>
-              <p className="font-medium text-foreground">{booking.id}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mb-1">Booking ID</p>
+              <p className="text-sm font-medium text-foreground break-all">{booking.id}</p>
             </div>
 
             <div>
-              <p className="text-sm text-muted-foreground">Customer Name</p>
-              <p className="font-medium text-foreground">{booking.customer}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mb-1">Customer Name</p>
+              <p className="text-sm font-medium text-foreground">{booking.customer}</p>
             </div>
 
             <div>
-              <p className="text-sm text-muted-foreground">Room Type</p>
-              <p className="font-medium text-foreground">{booking.room}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mb-1">Room Type</p>
+              <p className="text-sm font-medium text-foreground">{booking.room}</p>
             </div>
 
             <div>
-              <p className="text-sm text-muted-foreground">Check-in / Check-out</p>
-              <p className="font-medium text-foreground">{booking.dates}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mb-1">Check-in / Check-out</p>
+              <p className="text-sm font-medium text-foreground">{booking.dates}</p>
             </div>
 
             <div>
-              <p className="text-sm text-muted-foreground">Status</p>
-              <Badge className={`capitalize ${getStatusColor(booking.status)}`}>{booking.status}</Badge>
+              <p className="text-xs sm:text-sm text-muted-foreground mb-1">Status</p>
+              <Badge className={`capitalize ${getStatusColor(booking.status)} text-xs`}>{booking.status}</Badge>
             </div>
 
             <div>
-              <p className="text-sm text-muted-foreground">Amount</p>
-              <p className="font-medium text-foreground">KES {booking.amount.toLocaleString()}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mb-1">Amount</p>
+              <p className="text-sm font-medium text-foreground">KES {booking.amount.toLocaleString()}</p>
             </div>
 
             <div>
-              <p className="text-sm text-muted-foreground">Payment Status</p>
-              <Badge className="bg-green-100 text-green-800">Completed</Badge>
+              <p className="text-xs sm:text-sm text-muted-foreground mb-1">Payment Status</p>
+              <Badge className="bg-green-100 text-green-800 text-xs">Completed</Badge>
             </div>
 
             <div>
-              <p className="text-sm text-muted-foreground">Notes</p>
-              <p className="text-sm text-foreground">Standard booking with no special requests</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mb-1">Notes</p>
+              <p className="text-xs sm:text-sm text-foreground">Standard booking with no special requests</p>
             </div>
           </div>
 
-          <div className="mt-6 flex gap-2 flex-wrap">
+          <div className="mt-4 flex gap-2 flex-wrap pt-4 border-t border-border">
             <Button variant="outline" onClick={onClose} className="flex-1 bg-transparent">
               Close
             </Button>
