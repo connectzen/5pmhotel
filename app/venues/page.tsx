@@ -176,10 +176,10 @@ export default function VenuesPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredVenues.map((venue: any) => (
               <Link key={venue.id} href={`/venues/${venue.id}`}>
-                <div className="bg-card rounded-lg overflow-hidden shadow-md hover:shadow-xl transition cursor-pointer h-full flex flex-col">
-                  <div className="h-48 bg-cover bg-center" style={{ backgroundImage: `url('${venue.image ?? venue.images?.[0] ?? "/luxury-ballroom.jpg"}')` }} />
+                <div className="bg-card rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer h-full flex flex-col hover:scale-105 hover:-translate-y-1 group">
+                  <div className="h-48 bg-cover bg-center transition-transform duration-300 group-hover:scale-110" style={{ backgroundImage: `url('${venue.image ?? venue.images?.[0] ?? "/luxury-ballroom.jpg"}')` }} />
                   <div className="p-6 flex-1 flex flex-col">
-                    <h3 className="font-serif text-xl font-bold text-primary mb-2">{venue.name}</h3>
+                    <h3 className="font-serif text-xl font-bold text-primary mb-2 group-hover:text-accent transition-colors">{venue.name}</h3>
                     <p className="text-foreground/70 text-sm mb-4 flex-1">{venue.description}</p>
                     <div className="flex items-center gap-4 mb-4 text-sm text-foreground/70">
                       <div className="flex items-center gap-1">
@@ -191,7 +191,7 @@ export default function VenuesPage() {
                         <span>{(venue.setupStyles || []).length} setups</span>
                       </div>
                     </div>
-                    <button className="w-full bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition">
+                    <button className="w-full bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105">
                       View Details
                     </button>
                   </div>

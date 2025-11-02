@@ -30,10 +30,10 @@ export default function BookingsPage() {
   const [bookings, setBookings] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<
-    "all" | "pending" | "approved" | "rejected" | "checked-in" | "checked-out" | "cancelled"
+    "all" | "pending" | "rejected" | "checked-in" | "checked-out" | "cancelled"
   >(() => {
     const filter = searchParams.get("filter")
-    if (filter === "pending" || filter === "approved" || filter === "rejected" || filter === "checked-in" || filter === "checked-out" || filter === "cancelled") {
+    if (filter === "pending" || filter === "rejected" || filter === "checked-in" || filter === "checked-out" || filter === "cancelled") {
       return filter
     }
     return "all"
@@ -686,7 +686,7 @@ export default function BookingsPage() {
         </div>
         <Button
           onClick={() => setCreateBookingModalOpen(true)}
-          className="gap-2"
+          className="gap-2 hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
         >
           <Plus className="w-4 h-4" />
           Create Booking
@@ -732,7 +732,7 @@ export default function BookingsPage() {
             />
           </div>
           <div className="flex gap-2 flex-wrap">
-            {(["all", "pending", "approved", "rejected", "checked-in", "checked-out", "cancelled"] as const).map(
+            {(["all", "pending", "rejected", "checked-in", "checked-out", "cancelled"] as const).map(
               (status) => {
                 const getBadgeCount = () => {
                   if (status === "pending") return pendingBookingsCount
@@ -746,7 +746,7 @@ export default function BookingsPage() {
                     key={status}
                     variant={statusFilter === status ? "default" : "outline"}
                     onClick={() => setStatusFilter(status)}
-                    className="capitalize relative"
+                    className="capitalize relative hover:scale-105 transition-transform duration-200"
                   >
                     {status === "checked-in" && badgeCount > 0 && (
                       <AlertTriangle className="w-4 h-4 mr-1.5 text-red-600" />
@@ -949,11 +949,42 @@ export default function BookingsPage() {
                     type="button"
                     variant="outline"
                     onClick={() => { setApprovalBooking(null); setApprovalData({ amount: 0, selectedRoomId: "", paymentMethod: "mpesa", checkInTime: "", checkOutTime: "" }); setIsApproving(false) }}
-                    className="flex-1"
+                    className="flex-1 hover:scale-105 transition-transform duration-200"
                     disabled={isApproving}
                   >
                     Cancel
                   </Button>
+                  {approvalBooking.status === "rejected" ? (
+                    <Button
+                      type="submit"
+                      className="flex-1 bg-green-600 hover:bg-green-700 hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
+                      disabled={isApproving}
+                    >
+                      {isApproving ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Re-approving...
+                        </>
+                      ) : (
+                        "Re-approve & Save"
+                      )}
+                    </Button>
+                  ) : (
+                    <Button
+                      type="submit"
+                      className="flex-1 hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
+                      disabled={isApproving}
+                    >
+                      {isApproving ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Approving...
+                        </>
+                      ) : (
+                        "Approve & Save"
+                      )}
+                    </Button>
+                  )}
                 </div>
               </form>
             </div>

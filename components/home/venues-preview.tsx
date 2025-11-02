@@ -28,16 +28,10 @@ export function VenuesPreview() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {venues.map((venue) => (
             <Link key={venue.id} href={`/venues/${venue.id}`}>
-              <div className="bg-card rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer group">
-                <div className="relative h-48 bg-cover bg-center overflow-hidden">
-                  <div 
-                    className="h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-110" 
-                    style={{ backgroundImage: `url('${venue.image ?? "/luxury-ballroom.jpg"}')` }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                </div>
+              <div className="bg-card rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-105 hover:-translate-y-1 group">
+                <div className="h-48 bg-cover bg-center transition-transform duration-300 group-hover:scale-110" style={{ backgroundImage: `url('${venue.image ?? "/luxury-ballroom.jpg"}')` }} />
                 <div className="p-4">
-                  <h3 className="font-serif text-xl font-bold text-primary mb-2">{venue.name}</h3>
+                  <h3 className="font-serif text-xl font-bold text-primary mb-2 group-hover:text-accent transition-colors">{venue.name}</h3>
                   <p className="text-sm text-foreground/70">Capacity: {venue.capacity ?? 0} guests</p>
                 </div>
               </div>
@@ -48,7 +42,7 @@ export function VenuesPreview() {
         <div className="text-center mt-12">
           <Link
             href="/venues"
-            className="inline-block bg-accent text-accent-foreground px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition"
+            className="inline-block bg-accent text-accent-foreground px-8 py-3 rounded-lg font-semibold hover:bg-accent/90 transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105"
           >
             Explore All Venues
           </Link>
