@@ -28,8 +28,14 @@ export function VenuesPreview() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {venues.map((venue) => (
             <Link key={venue.id} href={`/venues/${venue.id}`}>
-              <div className="bg-card rounded-lg overflow-hidden shadow-md hover:shadow-xl transition cursor-pointer">
-                <div className="h-48 bg-cover bg-center" style={{ backgroundImage: `url('${venue.image ?? "/luxury-ballroom.jpg"}')` }} />
+              <div className="bg-card rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer group">
+                <div className="relative h-48 bg-cover bg-center overflow-hidden">
+                  <div 
+                    className="h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-110" 
+                    style={{ backgroundImage: `url('${venue.image ?? "/luxury-ballroom.jpg"}')` }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </div>
                 <div className="p-4">
                   <h3 className="font-serif text-xl font-bold text-primary mb-2">{venue.name}</h3>
                   <p className="text-sm text-foreground/70">Capacity: {venue.capacity ?? 0} guests</p>

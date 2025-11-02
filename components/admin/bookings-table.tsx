@@ -173,7 +173,7 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
                 <td className="px-6 py-4 text-sm font-medium text-foreground">KES {booking.amount.toLocaleString()}</td>
                 <td className="px-6 py-4">
                   <div className="flex gap-2 flex-wrap">
-                    <Button variant="ghost" size="sm" onClick={() => onSelectBooking(booking)} className="gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => onSelectBooking(booking)} className="gap-1 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 hover:shadow-lg">
                       <Eye className="w-4 h-4" />
                       View
                     </Button>
@@ -183,7 +183,7 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
                           variant="ghost"
                           size="sm"
                           onClick={() => onStatusChange(booking.id, "approved")}
-                          className="gap-1 text-green-600 hover:text-green-700"
+                          className="gap-1 text-green-600 hover:text-green-700 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 hover:shadow-lg"
                         >
                           <CheckCircle className="w-4 h-4" />
                           Approve
@@ -192,7 +192,7 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
                           variant="ghost"
                           size="sm"
                           onClick={() => onStatusChange(booking.id, "rejected")}
-                          className="gap-1 text-red-600 hover:text-red-700"
+                          className="gap-1 text-red-600 hover:text-red-700 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 hover:shadow-lg"
                         >
                           <Trash2 className="w-4 h-4" />
                           Reject
@@ -205,7 +205,7 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
                           variant="ghost"
                           size="sm"
                           onClick={() => onStatusChange(booking.id, "checked-in")}
-                          className="gap-1 text-blue-600 hover:text-blue-700"
+                          className="gap-1 text-blue-600 hover:text-blue-700 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 hover:shadow-lg"
                         >
                           <LogIn className="w-4 h-4" />
                           Check-in
@@ -217,7 +217,7 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
                         variant="ghost"
                         size="sm"
                         onClick={() => onStatusChange(booking.id, "checked-out")}
-                        className="gap-1 text-orange-600 hover:text-orange-700"
+                        className="gap-1 text-orange-600 hover:text-orange-700 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 hover:shadow-lg"
                       >
                         <LogOut className="w-4 h-4" />
                         Check-out
@@ -228,7 +228,7 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
                         variant="ghost"
                         size="sm"
                         onClick={() => onStatusChange(booking.id, "approved")}
-                        className="gap-1 text-green-600 hover:text-green-700"
+                        className="gap-1 text-green-600 hover:text-green-700 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 hover:shadow-lg"
                       >
                         <CheckCircle className="w-4 h-4" />
                         Re-approve
@@ -239,7 +239,7 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
                         variant="ghost"
                         size="sm"
                         onClick={() => onStatusChange(booking.id, "approved")}
-                        className="gap-1 text-green-600 hover:text-green-700"
+                        className="gap-1 text-green-600 hover:text-green-700 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 hover:shadow-lg"
                       >
                         <CheckCircle className="w-4 h-4" />
                         Reapprove
@@ -250,18 +250,18 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
                         variant="ghost"
                         size="sm"
                         onClick={() => onStatusChange(booking.id, "cancelled")}
-                        className="gap-1 text-red-600 hover:text-red-700"
+                        className="gap-1 text-red-600 hover:text-red-700 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 hover:shadow-lg"
                       >
                         <Trash2 className="w-4 h-4" />
                         Cancel
                       </Button>
                     )}
-                    <Button variant="ghost" size="sm" onClick={() => onEdit(booking)} className="gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => onEdit(booking)} className="gap-1 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 hover:shadow-lg">
                       <Pencil className="w-4 h-4" />
                       Edit
                     </Button>
                     {(booking.status === "rejected" || booking.status === "checked-out" || booking.status === "cancelled") && (
-                      <Button variant="ghost" size="sm" onClick={() => onDelete(booking.id)} className="gap-1 text-red-600 hover:text-red-700">
+                      <Button variant="ghost" size="sm" onClick={() => onDelete(booking.id)} className="gap-1 text-red-600 hover:text-red-700 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 hover:shadow-lg">
                         <Trash2 className="w-4 h-4" />
                         Delete
                       </Button>

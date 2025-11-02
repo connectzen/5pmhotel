@@ -814,7 +814,7 @@ export default function BookingsPage() {
                 </p>
                 {approvalBooking.dates && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    <span className="text-orange-600">Note: You can select a different room below if needed. The amount will be recalculated automatically.</span>
+                    <span className="text-blue-600">Note: You can select a different room below if needed. The amount will be recalculated automatically.</span>
                   </p>
                 )}
               </div>
@@ -954,37 +954,6 @@ export default function BookingsPage() {
                   >
                     Cancel
                   </Button>
-                  {approvalBooking.status === "rejected" ? (
-                    <Button
-                      type="submit"
-                      className="flex-1 bg-green-600 hover:bg-green-700"
-                      disabled={isApproving}
-                    >
-                      {isApproving ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Re-approving...
-                        </>
-                      ) : (
-                        "Re-approve & Save"
-                      )}
-                    </Button>
-                  ) : (
-                    <Button
-                      type="submit"
-                      className="flex-1"
-                      disabled={isApproving}
-                    >
-                      {isApproving ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Approving...
-                        </>
-                      ) : (
-                        "Approve & Save"
-                      )}
-                    </Button>
-                  )}
                 </div>
               </form>
             </div>

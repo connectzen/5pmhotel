@@ -654,7 +654,7 @@ export default function EventsPage() {
                             onClick={() => openApprovalModal(ev)} 
                             size="sm"
                             disabled={processingIds.has(ev.id)}
-                            className="min-w-[80px]"
+                            className="min-w-[80px] transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 hover:shadow-lg"
                           >
                             Approve
                           </Button>
@@ -663,7 +663,7 @@ export default function EventsPage() {
                             onClick={() => rejectEvent(ev)} 
                             size="sm"
                             disabled={processingIds.has(ev.id)}
-                            className="min-w-[80px]"
+                            className="min-w-[80px] transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 hover:shadow-lg"
                           >
                             {processingIds.has(ev.id) ? "Processing..." : "Reject"}
                           </Button>
@@ -675,7 +675,7 @@ export default function EventsPage() {
                           size="sm"
                           onClick={() => unapproveEvent(ev)}
                           disabled={processingIds.has(ev.id)}
-                          className="gap-1 text-blue-600 hover:text-blue-700 min-w-[90px]"
+                          className="gap-1 text-blue-600 hover:text-blue-700 min-w-[90px] transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 hover:shadow-lg"
                         >
                           <RotateCcw className="w-4 h-4" />
                           Unapprove
@@ -687,7 +687,7 @@ export default function EventsPage() {
                           onClick={() => approveRejectedEvent(ev)} 
                           size="sm"
                           disabled={processingIds.has(ev.id)}
-                          className="min-w-[80px]"
+                          className="min-w-[80px] transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 hover:shadow-lg"
                         >
                           {processingIds.has(ev.id) ? "Processing..." : "Approve"}
                         </Button>
@@ -697,7 +697,7 @@ export default function EventsPage() {
                         size="sm"
                         onClick={() => openEditModal(ev)}
                         disabled={processingIds.has(ev.id)}
-                        className="gap-1 text-blue-600 hover:text-blue-700 min-w-[70px]"
+                        className="gap-1 text-blue-600 hover:text-blue-700 min-w-[70px] transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 hover:shadow-lg"
                       >
                         <Edit className="w-4 h-4" />
                         Edit
@@ -708,7 +708,7 @@ export default function EventsPage() {
                           size="sm"
                           onClick={() => deleteEvent(ev)}
                           disabled={processingIds.has(ev.id)}
-                          className="gap-1 text-red-600 hover:text-red-700 min-w-[70px]"
+                          className="gap-1 text-red-600 hover:text-red-700 min-w-[70px] transition-all duration-300 hover:scale-[1.02] hover:translate-x-1 hover:shadow-lg"
                         >
                           <Trash2 className="w-4 h-4" />
                           Delete
