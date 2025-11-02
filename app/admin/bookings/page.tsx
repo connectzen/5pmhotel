@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { collection, onSnapshot, doc, setDoc, deleteDoc, addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-import { differenceInCalendarDays, parseISO, isValid } from "date-fns"
+import { differenceInCalendarDays, parseISO, isValid, format, addDays, isPast, isToday, startOfDay } from "date-fns"
 
 export default function BookingsPage() {
   const searchParams = useSearchParams()
@@ -48,6 +48,7 @@ export default function BookingsPage() {
     paymentMethod: "mpesa" as "card" | "cash" | "mpesa",
     checkInTime: "",
     checkOutTime: "",
+    updatedDates: "", // Store auto-calculated dates if booking date is past
   })
   const [rooms, setRooms] = useState<any[]>([])
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false)
@@ -253,16 +254,20 @@ export default function BookingsPage() {
 
   const openApprovalModal = (booking: any) => {
     setApprovalBooking(booking)
-    // Set default check-in time to current time
+    
     const now = new Date()
+    const today = startOfDay(now)
     const defaultTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
     
     // Find the room that matches the booking's room name
     const matchingRoom = rooms.find(r => r.name === booking.room)
     const selectedRoomId = matchingRoom?.id || ""
     
-    // Calculate nights from booking dates
+    // Calculate nights from booking dates and check if dates need to be updated
     let nights = 1
+    let updatedDates = "" // Will store auto-calculated dates if booking date is past/today
+    let needsDateUpdate = false
+    
     if (booking.dates) {
       const dates = (booking.dates || "").split(" - ")
       if (dates.length >= 2) {
@@ -289,6 +294,18 @@ export default function BookingsPage() {
         
         if (isValid(checkInDate) && isValid(checkOutDate)) {
           nights = Math.max(1, differenceInCalendarDays(checkOutDate, checkInDate))
+          
+          // Check if check-in date is today or in the past
+          const checkInStart = startOfDay(checkInDate)
+          if (isPast(checkInStart) || isToday(checkInStart)) {
+            // Auto-calculate new dates based on today
+            needsDateUpdate = true
+            const newCheckInDate = today
+            const newCheckOutDate = addDays(today, nights)
+            
+            // Format as DD/MM/YYYY
+            updatedDates = `${format(newCheckInDate, 'dd/MM/yyyy')} - ${format(newCheckOutDate, 'dd/MM/yyyy')}`
+          }
         }
       }
     } else if (booking.checkIn && booking.checkOut) {
@@ -297,8 +314,24 @@ export default function BookingsPage() {
       const checkOutDate = parseISO(booking.checkOut)
       if (isValid(checkInDate) && isValid(checkOutDate)) {
         nights = Math.max(1, differenceInCalendarDays(checkOutDate, checkInDate))
+        
+        // Check if check-in date is today or in the past
+        const checkInStart = startOfDay(checkInDate)
+        if (isPast(checkInStart) || isToday(checkInStart)) {
+          // Auto-calculate new dates based on today
+          needsDateUpdate = true
+          const newCheckInDate = today
+          const newCheckOutDate = addDays(today, nights)
+          
+          // Format as DD/MM/YYYY
+          updatedDates = `${format(newCheckInDate, 'dd/MM/yyyy')} - ${format(newCheckOutDate, 'dd/MM/yyyy')}`
+        }
       }
     }
+    
+    // Only set default dates if we actually need an update
+    // This handles cases where dates couldn't be parsed but we still need defaults
+    // Note: We don't auto-update if the original check-in date is in the future
     
     // Calculate amount based on selected room and nights
     const amount = matchingRoom ? matchingRoom.price * nights : (booking.amount ?? 0)
@@ -309,6 +342,7 @@ export default function BookingsPage() {
       paymentMethod: "mpesa",
       checkInTime: defaultTime,
       checkOutTime: "",
+      updatedDates: updatedDates,
     })
   }
 
@@ -372,18 +406,38 @@ export default function BookingsPage() {
       // Determine status: if check-in time is provided, automatically check in
       const finalStatus = approvalData.checkInTime ? "checked-in" : "approved"
       
+      // Prepare update data
+      const updateData: any = {
+        status: finalStatus,
+        amount: approvalData.amount,
+        room: selectedRoom.name, // Update room name if different
+        paymentMethod: approvalData.paymentMethod,
+        checkInTime: approvalData.checkInTime || null,
+        checkOutTime: approvalData.checkOutTime || null,
+        updatedAt: serverTimestamp(),
+      }
+      
+      // If dates were auto-calculated (booking was for past/today), update the dates field
+      if (approvalData.updatedDates) {
+        updateData.dates = approvalData.updatedDates
+        // Also update checkIn and checkOut dates in ISO format for compatibility
+        const datesParts = approvalData.updatedDates.split(" - ")
+        if (datesParts.length === 2) {
+          const [dayIn, monthIn, yearIn] = datesParts[0].trim().split("/")
+          const [dayOut, monthOut, yearOut] = datesParts[1].trim().split("/")
+          if (dayIn && monthIn && yearIn) {
+            const newCheckIn = new Date(parseInt(yearIn), parseInt(monthIn) - 1, parseInt(dayIn))
+            const newCheckOut = new Date(parseInt(yearOut), parseInt(monthOut) - 1, parseInt(dayOut))
+            updateData.checkIn = format(newCheckIn, 'yyyy-MM-dd')
+            updateData.checkOut = format(newCheckOut, 'yyyy-MM-dd')
+          }
+        }
+      }
+      
       // Update booking with selected room and calculated amount
       await setDoc(
         doc(db, "bookings", approvalBooking.id),
-        { 
-          status: finalStatus,
-          amount: approvalData.amount,
-          room: selectedRoom.name, // Update room name if different
-          paymentMethod: approvalData.paymentMethod,
-          checkInTime: approvalData.checkInTime || null,
-          checkOutTime: approvalData.checkOutTime || null,
-          updatedAt: serverTimestamp(),
-        },
+        updateData,
         { merge: true }
       )
       
@@ -432,6 +486,8 @@ export default function BookingsPage() {
         selectedRoomId: "",
         paymentMethod: "mpesa",
         checkInTime: "",
+        checkOutTime: "",
+        updatedDates: "",
       })
     } catch (error) {
       console.error("Failed to approve booking:", error)
@@ -871,7 +927,7 @@ export default function BookingsPage() {
                   {approvalBooking.status === "rejected" ? "Re-approve Booking" : "Approve Booking"}
                 </h2>
                 <button 
-                  onClick={() => { setApprovalBooking(null); setApprovalData({ amount: 0, selectedRoomId: "", paymentMethod: "mpesa", checkInTime: "", checkOutTime: "" }) }} 
+                  onClick={() => { setApprovalBooking(null); setApprovalData({ amount: 0, selectedRoomId: "", paymentMethod: "mpesa", checkInTime: "", checkOutTime: "", updatedDates: "" }) }} 
                   className="text-muted-foreground hover:text-foreground"
                 >
                   <X className="w-5 h-5" />
@@ -883,8 +939,23 @@ export default function BookingsPage() {
                 <p className="text-xs text-muted-foreground">Customer: {approvalBooking.customer}</p>
                 <p className="text-xs text-muted-foreground">
                   Current Room: {approvalBooking.room || "Not assigned"} 
-                  {approvalBooking.dates && ` | Dates: ${approvalBooking.dates}`}
+                  {approvalData.updatedDates ? (
+                    <span>
+                      {` | Original Dates: ${approvalBooking.dates || "N/A"}`}
+                      <br />
+                      <span className="text-green-600 font-semibold">
+                        Updated Dates: {approvalData.updatedDates} (Auto-calculated)
+                      </span>
+                    </span>
+                  ) : (
+                    approvalBooking.dates && ` | Dates: ${approvalBooking.dates}`
+                  )}
                 </p>
+                {approvalData.updatedDates && (
+                  <p className="text-xs text-green-700 bg-green-50 px-2 py-1 rounded mt-2 border border-green-200">
+                    ✅ Dates automatically updated because the original booking date was today or in the past.
+                  </p>
+                )}
                 {approvalBooking.dates && (
                   <p className="text-xs text-muted-foreground mt-1">
                     <span className="text-blue-600">Note: You can select a different room below if needed. The amount will be recalculated automatically.</span>
@@ -1021,7 +1092,7 @@ export default function BookingsPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => { setApprovalBooking(null); setApprovalData({ amount: 0, selectedRoomId: "", paymentMethod: "mpesa", checkInTime: "", checkOutTime: "" }); setIsApproving(false) }}
+                    onClick={() => { setApprovalBooking(null); setApprovalData({ amount: 0, selectedRoomId: "", paymentMethod: "mpesa", checkInTime: "", checkOutTime: "", updatedDates: "" }); setIsApproving(false) }}
                     className="flex-1 hover:scale-105 transition-transform duration-200"
                     disabled={isApproving}
                   >
