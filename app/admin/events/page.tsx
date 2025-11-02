@@ -552,14 +552,15 @@ export default function EventsPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 min-w-0">
+    <div className="h-full flex flex-col min-w-0">
+      <div className="p-6 space-y-6 flex-1 overflow-y-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground">Events</h1>
-          <p className="text-sm sm:text-base text-muted-foreground mt-1">Approve client event requests and manage booked events</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-serif font-bold text-foreground">Events</h1>
+          <p className="text-muted-foreground mt-1">Approve client event requests and manage booked events</p>
         </div>
-        <div className="flex flex-wrap gap-2 mt-4 sm:mt-0">
+        <div className="flex gap-2">
           <Button
             onClick={() => setCreateEventModalOpen(true)}
             className="gap-2 hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
@@ -1301,6 +1302,7 @@ export default function EventsPage() {
           setCreateEventModalOpen(false)
         }}
       />
+      </div>
     </div>
   )
 }

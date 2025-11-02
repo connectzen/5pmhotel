@@ -284,7 +284,8 @@ export default function PaymentsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 min-w-0">
+    <div className="h-full flex flex-col min-w-0">
+      <div className="p-6 space-y-6 flex-1 overflow-y-auto">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -348,6 +349,7 @@ export default function PaymentsPage() {
 
       {/* Payments Table */}
       <PaymentsTable payments={filteredPayments} />
+      </div>
     </div>
   )
 }

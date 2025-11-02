@@ -129,12 +129,13 @@ export default function RoomsPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 min-w-0">
+    <div className="h-full flex flex-col min-w-0">
+      <div className="p-6 space-y-6 flex-1 overflow-y-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground">Rooms Management</h1>
-          <p className="text-sm sm:text-base text-muted-foreground mt-1">Manage room types and inventory</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-serif font-bold text-foreground">Rooms Management</h1>
+          <p className="text-muted-foreground mt-1">Manage room types and inventory</p>
         </div>
         <Button
           className="gap-2 hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
@@ -244,6 +245,7 @@ export default function RoomsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   )
 }

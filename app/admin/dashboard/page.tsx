@@ -441,7 +441,7 @@ export default function DashboardPage() {
             <p className="text-3xl font-bold text-accent group-hover:scale-105 transition-transform inline-block">KSh {kpis.revenueThisMonth.toLocaleString()}</p>
             <p className="text-xs text-muted-foreground mt-2">All-time revenue</p>
           </Card>
-          <Card className="p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-l-green-500/50 bg-gradient-to-br from-card to-card/95 group">
+          <Card className="p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-l-primary/50 bg-gradient-to-br from-card to-card/95 group">
             <p className="text-sm text-muted-foreground mb-2 font-medium">Total Bookings</p>
             <p className="text-3xl font-bold text-foreground group-hover:text-green-500 transition-colors">{bookings.length}</p>
             <p className="text-xs text-muted-foreground mt-2">All bookings</p>

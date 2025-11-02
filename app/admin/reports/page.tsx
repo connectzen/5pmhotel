@@ -58,7 +58,8 @@ export default function ReportsPage() {
   }, [bookings, rooms, payments])
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="h-full flex flex-col min-w-0">
+      <div className="p-6 space-y-6 flex-1 overflow-y-auto">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -131,6 +132,7 @@ export default function ReportsPage() {
         <h2 className="text-lg font-semibold text-foreground mb-4">Revenue Trend</h2>
         <RevenueReportChart payments={payments} reportType={reportType} timeRange={timeRange} />
       </Card>
+      </div>
     </div>
   )
 }

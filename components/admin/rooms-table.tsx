@@ -44,8 +44,6 @@ export function RoomsTable({ rooms, onEdit, onDelete, busyId }: RoomsTableProps)
                 key={(room.id || room.name || "room") + "-" + idx} 
                 className={`hover:bg-muted/50 transition-colors ${
                   room.isOutOfStock ? "opacity-75" : ""
-                } ${
-                  room.isAvailable && !room.isOutOfStock ? "border-l-4 border-l-green-500" : ""
                 }`}
               >
                 <td className="px-3 sm:px-6 py-4">

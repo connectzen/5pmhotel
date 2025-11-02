@@ -31,7 +31,8 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="h-full flex flex-col min-w-0">
+      <div className="p-6 space-y-6 flex-1 overflow-y-auto">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-serif font-bold text-foreground">Settings</h1>
@@ -108,6 +109,7 @@ export default function SettingsPage() {
       </Card>
 
       {/* Payment Settings removed per requirements */}
+      </div>
     </div>
   )
 }

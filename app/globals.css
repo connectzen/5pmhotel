@@ -171,17 +171,19 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans, "Open Sans", sans-serif);
-    /* Prevent page-level horizontal scrolling */
+    /* Prevent page-level scrolling - let individual containers handle scrolling */
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: hidden;
+    height: 100vh;
   }
   
   /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
-    /* Prevent page-level horizontal scrolling */
+    /* Prevent page-level scrolling */
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: hidden;
+    height: 100%;
   }
   
   /* Show horizontal scrollbars for table containers and overflow elements */
