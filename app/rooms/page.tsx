@@ -57,12 +57,15 @@ export default function RoomsPage() {
   }, [rooms])
   
   // Get unique room types dynamically from rooms in database
-  // Use room.name as type since that's what's displayed in admin and represents actual room types
+  // Use room.name directly since room names represent the actual room types (e.g., "triple room", "tween room")
+  // Only use the type field if it's actually different from "room" (the default value)
   const availableRoomTypes = useMemo(() => {
     const types = new Set<string>()
     rooms.forEach((room) => {
-      // Try to use the type field if it exists, otherwise use the room name
-      const roomType = (room.type && room.type.trim()) ? room.type.trim() : (room.name ? room.name.trim() : null)
+      // Use type field only if it exists and is not the default "room" value, otherwise use room name
+      const roomType = (room.type && room.type.trim() && room.type.trim().toLowerCase() !== "room") 
+        ? room.type.trim() 
+        : (room.name ? room.name.trim() : null)
       if (roomType) {
         types.add(roomType)
       }
@@ -71,8 +74,10 @@ export default function RoomsPage() {
   }, [rooms])
   
   const filteredRooms = rooms.filter((room) => {
-    // Match by type field if available, otherwise match by name
-    const roomType = (room.type && room.type.trim()) ? room.type.trim() : (room.name ? room.name.trim() : "")
+    // Match by type field if it's not "room" default, otherwise match by name
+    const roomType = (room.type && room.type.trim() && room.type.trim().toLowerCase() !== "room")
+      ? room.type.trim()
+      : (room.name ? room.name.trim() : "")
     const typeMatch = selectedType === "all" || roomType === selectedType
     const priceMatch = room.price <= priceRange
     const guestMatch = guestCount === "all" || room.capacity === Number.parseInt(guestCount)
