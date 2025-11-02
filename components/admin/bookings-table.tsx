@@ -39,20 +39,22 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
   }
 
   const isBookingExpired = (booking: Booking) => {
-    if (booking.status !== "checked-in") return false
+    if (booking.status !== "checked-in") return { expired: false, elapsed: null }
     
     const now = new Date()
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0)
-    
-    // Try to get checkout date from various possible fields
+    let checkoutDateTime: Date | null = null
+
+    // Try to get checkout time (HH:MM format)
+    const checkoutTime = (booking as any).checkOutTime || (booking as any).checkoutTime
+    const checkoutDateStr = (booking as any).checkOutDate || (booking as any).checkOut || (booking as any).checkoutDate
+
+    // Parse checkout date
     let checkoutDate: Date | null = null
-    
-    const checkOut = (booking as any).checkOutDate || (booking as any).checkOut || (booking as any).checkoutDate
-    if (checkOut) {
-      checkoutDate = new Date(checkOut)
+    if (checkoutDateStr) {
+      checkoutDate = new Date(checkoutDateStr)
       if (isNaN(checkoutDate.getTime())) checkoutDate = null
     }
-    
+
     // If not found, try parsing from dates field
     if (!checkoutDate && booking.dates) {
       const dates = (booking.dates || "").split(" - ")
@@ -63,27 +65,37 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
           const day = parseInt(parts[0], 10)
           const month = parseInt(parts[1], 10)
           const year = parseInt(parts[2], 10)
-          
-          if (!isNaN(day) && !isNaN(month) && !isNaN(year) && 
-              day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 2000) {
-            checkoutDate = new Date(year, month - 1, day, 12, 0, 0, 0)
-            if (isNaN(checkoutDate.getTime())) checkoutDate = null
+          if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+            checkoutDate = new Date(year, month - 1, day)
           }
         } else {
           checkoutDate = new Date(checkoutStr)
-          if (isNaN(checkoutDate.getTime())) {
-            checkoutDate = null
-          } else {
-            checkoutDate.setHours(12, 0, 0, 0)
-          }
         }
+        if (isNaN(checkoutDate.getTime())) checkoutDate = null
       }
     }
-    
-    if (!checkoutDate) return false
-    
-    checkoutDate.setHours(12, 0, 0, 0)
-    return checkoutDate < today
+
+    if (!checkoutDate) return { expired: false, elapsed: null }
+
+    // Parse checkout time (HH:MM format) if available
+    if (checkoutTime && typeof checkoutTime === 'string' && checkoutTime.includes(':')) {
+      const [hours, minutes] = checkoutTime.split(':').map(Number)
+      if (!isNaN(hours) && !isNaN(minutes)) {
+        checkoutDateTime = new Date(checkoutDate)
+        checkoutDateTime.setHours(hours, minutes, 0, 0)
+      }
+    }
+
+    // If no checkout time specified, default to 11:00 AM
+    if (!checkoutDateTime) {
+      checkoutDateTime = new Date(checkoutDate)
+      checkoutDateTime.setHours(11, 0, 0, 0)
+    }
+
+    const expired = now > checkoutDateTime
+    const elapsed = expired ? Math.floor((now.getTime() - checkoutDateTime.getTime()) / (1000 * 60)) : null // in minutes
+
+    return { expired, elapsed }
   }
 
   return (
@@ -103,8 +115,16 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {bookings.map((booking) => (
-              <tr key={booking.id} className="hover:bg-muted/50 transition-colors">
+            {bookings.map((booking) => {
+              const expiration = isBookingExpired(booking)
+              const isExpired = expiration.expired
+              return (
+              <tr 
+                key={booking.id} 
+                className={`hover:bg-muted/50 transition-colors ${
+                  isExpired ? 'bg-red-50 border-l-4 border-l-red-500' : ''
+                }`}
+              >
                 <td className="px-6 py-4 text-sm font-medium text-foreground">{(booking as any).email || booking.id}</td>
                 <td className="px-6 py-4 text-sm text-foreground">{booking.customer}</td>
                 <td className="px-6 py-4 text-sm text-foreground">
@@ -155,18 +175,28 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
                       })()}
                     </div>
                   )}
-                  {booking.status === "checked-in" && isBookingExpired(booking) && (
-                    <div className="mt-1 flex items-center gap-1 text-xs text-red-600">
-                      <AlertTriangle className="w-3 h-3" />
-                      <span className="font-medium">Expired</span>
+                  {booking.status === "checked-in" && expiration.expired && (
+                    <div className="mt-1 flex items-center gap-1 text-xs bg-red-100 px-2 py-1 rounded border border-red-300 w-fit">
+                      <AlertTriangle className="w-3 h-3 text-red-600 animate-pulse" />
+                      <span className="font-bold text-red-700">
+                        EXPIRED
+                        {expiration.elapsed !== null && (
+                          <span className="ml-1">
+                            ({expiration.elapsed >= 60 
+                              ? `${Math.floor(expiration.elapsed / 60)}h ${expiration.elapsed % 60}m`
+                              : `${expiration.elapsed}m`
+                            } ago)
+                          </span>
+                        )}
+                      </span>
                     </div>
                   )}
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
                     <Badge className={`capitalize ${getStatusColor(booking.status)}`}>{booking.status}</Badge>
-                    {booking.status === "checked-in" && isBookingExpired(booking) && (
-                      <AlertTriangle className="w-4 h-4 text-red-600" />
+                    {booking.status === "checked-in" && expiration.expired && (
+                      <AlertTriangle className="w-4 h-4 text-red-600 animate-pulse" />
                     )}
                   </div>
                 </td>
@@ -269,7 +299,8 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
                   </div>
                 </td>
               </tr>
-            ))}
+            )
+            })}
           </tbody>
         </table>
       </div>

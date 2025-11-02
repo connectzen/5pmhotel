@@ -135,66 +135,111 @@ export default function BookingsPage() {
     return bookings.filter((b) => b.status === "pending").length
   }, [bookings])
 
-  const expiredCheckedInCount = useMemo(() => {
-    const now = new Date()
-    // Normalize current time to start of day for proper comparison
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0)
-    
-    return bookings.filter((booking) => {
-      if (booking.status !== "checked-in") return false
-      
-      // Try to get checkout date from various possible fields
-      let checkoutDate: Date | null = null
-      
-      // First, try alternative date fields (ISO format or timestamp)
-      const checkOut = (booking as any).checkOutDate || (booking as any).checkOut || (booking as any).checkoutDate
-      if (checkOut) {
-        checkoutDate = new Date(checkOut)
+  // Real-time clock for monitoring
+  const [currentTime, setCurrentTime] = useState(new Date())
+
+  useEffect(() => {
+    // Update time every minute for real-time monitoring
+    const interval = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 60000) // Update every minute
+
+    return () => clearInterval(interval)
+  }, [])
+
+  // Helper function to check if booking checkout time has expired
+  const isBookingCheckoutExpired = (booking: any) => {
+    if (booking.status !== "checked-in") return { expired: false, expiredAt: null, elapsed: null }
+
+    const now = currentTime
+    let checkoutDateTime: Date | null = null
+
+    // First, try to get checkout time (HH:MM format)
+    const checkoutTime = (booking as any).checkOutTime || (booking as any).checkoutTime
+    const checkoutDateStr = (booking as any).checkOutDate || (booking as any).checkOut || (booking as any).checkoutDate
+
+    // Parse checkout date
+    let checkoutDate: Date | null = null
+    if (checkoutDateStr) {
+      checkoutDate = new Date(checkoutDateStr)
+      if (isNaN(checkoutDate.getTime())) checkoutDate = null
+    }
+
+    // If not found, try parsing from dates field
+    if (!checkoutDate && booking.dates) {
+      const dates = (booking.dates || "").split(" - ")
+      if (dates.length >= 2) {
+        const checkoutStr = dates[1].trim()
+        const parts = checkoutStr.split("/")
+        if (parts.length === 3) {
+          const day = parseInt(parts[0], 10)
+          const month = parseInt(parts[1], 10)
+          const year = parseInt(parts[2], 10)
+          if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+            checkoutDate = new Date(year, month - 1, day)
+          }
+        } else {
+          checkoutDate = new Date(checkoutStr)
+        }
         if (isNaN(checkoutDate.getTime())) checkoutDate = null
       }
-      
-      // If not found, try parsing from dates field (format: "DD/MM/YYYY - DD/MM/YYYY")
-      if (!checkoutDate && booking.dates) {
-        const dates = (booking.dates || "").split(" - ")
-        if (dates.length >= 2) {
-          const checkoutStr = dates[1].trim()
-          // Try DD/MM/YYYY format (e.g., "01/11/2025")
-          const parts = checkoutStr.split("/")
-          if (parts.length === 3) {
-            const day = parseInt(parts[0], 10)
-            const month = parseInt(parts[1], 10)
-            const year = parseInt(parts[2], 10)
-            
-            // Validate parsed values
-            if (!isNaN(day) && !isNaN(month) && !isNaN(year) && 
-                day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 2000) {
-              // Create date at noon for checkout time (month is 0-indexed in JS Date)
-              checkoutDate = new Date(year, month - 1, day, 12, 0, 0, 0)
-              if (isNaN(checkoutDate.getTime())) checkoutDate = null
-            }
-          } else {
-            // Try YYYY-MM-DD format
-            checkoutDate = new Date(checkoutStr)
-            if (isNaN(checkoutDate.getTime())) {
-              checkoutDate = null
-            } else {
-              // Set to noon if not already set
-              checkoutDate.setHours(12, 0, 0, 0)
-            }
-          }
-        }
+    }
+
+    if (!checkoutDate) return { expired: false, expiredAt: null, elapsed: null }
+
+    // Parse checkout time (HH:MM format) if available
+    if (checkoutTime && typeof checkoutTime === 'string' && checkoutTime.includes(':')) {
+      const [hours, minutes] = checkoutTime.split(':').map(Number)
+      if (!isNaN(hours) && !isNaN(minutes)) {
+        checkoutDateTime = new Date(checkoutDate)
+        checkoutDateTime.setHours(hours, minutes, 0, 0)
       }
-      
-      if (!checkoutDate) return false
-      
-      // Ensure checkout date is normalized to noon for consistent comparison
-      checkoutDate.setHours(12, 0, 0, 0)
-      
-      // Check if checkout date has passed (compare dates, not times)
-      // A booking is expired if checkout date is BEFORE today
-      return checkoutDate < today
-    }).length
-  }, [bookings])
+    }
+
+    // If no checkout time specified, default to 11:00 AM
+    if (!checkoutDateTime) {
+      checkoutDateTime = new Date(checkoutDate)
+      checkoutDateTime.setHours(11, 0, 0, 0)
+    }
+
+    const expired = now > checkoutDateTime
+    const elapsed = expired ? Math.floor((now.getTime() - checkoutDateTime.getTime()) / (1000 * 60)) : null // in minutes
+
+    return { expired, expiredAt: checkoutDateTime, elapsed }
+  }
+
+  const expiredBookings = useMemo(() => {
+    return bookings.map(booking => {
+      const expiration = isBookingCheckoutExpired(booking)
+      return { booking, ...expiration }
+    }).filter(item => item.expired)
+  }, [bookings, currentTime])
+
+  const expiredCheckedInCount = expiredBookings.length
+
+  // Browser notifications for expired checkouts
+  useEffect(() => {
+    if (expiredCheckedInCount > 0 && typeof window !== 'undefined' && 'Notification' in window) {
+      // Request permission if not granted
+      if (Notification.permission === 'default') {
+        Notification.requestPermission()
+      }
+
+      // Show notification if permission granted
+      if (Notification.permission === 'granted') {
+        const notification = new Notification(`🚨 ${expiredCheckedInCount} Checkout${expiredCheckedInCount > 1 ? 's' : ''} Expired`, {
+          body: `You have ${expiredCheckedInCount} checked-in guest${expiredCheckedInCount > 1 ? 's' : ''} whose checkout time has expired. Please check them out.`,
+          icon: '/favicon.ico',
+          tag: 'expired-checkout',
+          requireInteraction: true,
+          badge: '/favicon.ico'
+        })
+
+        // Close notification after 10 seconds
+        setTimeout(() => notification.close(), 10000)
+      }
+    }
+  }, [expiredCheckedInCount])
 
   const filteredBookings = useMemo(() => bookings.filter((booking) => {
     const email = (booking as any).email || ""
@@ -693,28 +738,56 @@ export default function BookingsPage() {
         </Button>
       </div>
 
-      {/* Alert for expired checked-in bookings */}
+      {/* Prominent Alert for expired checked-in bookings */}
       {expiredCheckedInCount > 0 && (
-        <Card className="p-4 bg-orange-50 border-orange-200">
-          <div className="flex items-center gap-3">
+        <Card className="p-6 bg-red-50 border-red-400 border-2 animate-pulse shadow-lg">
+          <div className="flex items-center gap-4">
             <div className="flex-shrink-0">
-              <svg className="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
+              <div className="w-12 h-12 rounded-full bg-red-500 flex items-center justify-center animate-ping">
+                <AlertTriangle className="w-6 h-6 text-white" />
+              </div>
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-orange-800">
-                <strong>{expiredCheckedInCount}</strong> checked-in client{expiredCheckedInCount !== 1 ? 's' : ''} {expiredCheckedInCount !== 1 ? 'have' : 'has'} exceeded their checkout time. Please check them out.
+              <h3 className="text-lg font-bold text-red-900 mb-1">
+                🚨 URGENT: {expiredCheckedInCount} Checkout{expiredCheckedInCount > 1 ? 's' : ''} Expired
+              </h3>
+              <p className="text-sm font-medium text-red-800 mb-2">
+                {expiredCheckedInCount > 1 
+                  ? `${expiredCheckedInCount} checked-in guests have exceeded their checkout time.`
+                  : 'A checked-in guest has exceeded their checkout time.'
+                }
               </p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {expiredBookings.slice(0, 3).map(({ booking, elapsed }) => {
+                  const hours = elapsed ? Math.floor(elapsed / 60) : 0
+                  const minutes = elapsed ? elapsed % 60 : 0
+                  return (
+                    <div key={booking.id} className="text-xs bg-red-100 px-2 py-1 rounded border border-red-300">
+                      <span className="font-semibold">{booking.customer}</span> - 
+                      <span className="ml-1">{booking.room}</span> - 
+                      <span className="ml-1 text-red-700">
+                        Expired {hours > 0 ? `${hours}h ` : ''}{minutes}m ago
+                      </span>
+                    </div>
+                  )
+                })}
+                {expiredCheckedInCount > 3 && (
+                  <div className="text-xs bg-red-100 px-2 py-1 rounded border border-red-300">
+                    +{expiredCheckedInCount - 3} more
+                  </div>
+                )}
+              </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setStatusFilter("checked-in")}
-              className="border-orange-300 text-orange-700 hover:bg-orange-100"
-            >
-              View Expired
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setStatusFilter("checked-in")}
+                className="border-red-300 text-red-700 hover:bg-red-100 hover:scale-105 transition-transform duration-200 font-semibold"
+              >
+                View All Expired
+              </Button>
+            </div>
           </div>
         </Card>
       )}

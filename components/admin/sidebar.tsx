@@ -32,15 +32,75 @@ export function AdminSidebar() {
   const pathname = usePathname()
   const [pendingBookingsCount, setPendingBookingsCount] = useState(0)
   const [pendingEventsCount, setPendingEventsCount] = useState(0)
+  const [expiredCheckoutsCount, setExpiredCheckoutsCount] = useState(0)
+  const [currentTime, setCurrentTime] = useState(new Date())
+
+  useEffect(() => {
+    // Update time every minute for real-time monitoring
+    const interval = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 60000)
+
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     // Listen to pending bookings
     const unsubBookings = onSnapshot(collection(db, "bookings"), (snap) => {
-      const pending = snap.docs.filter((d) => {
-        const data = d.data()
-        return data.status === "pending"
-      }).length
+      const bookings = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }))
+      const pending = bookings.filter((b: any) => b.status === "pending").length
       setPendingBookingsCount(pending)
+
+      // Calculate expired checkouts
+      const now = currentTime
+      const expired = bookings.filter((booking: any) => {
+        if (booking.status !== "checked-in") return false
+        
+        const checkoutTime = booking.checkOutTime || booking.checkoutTime
+        const checkoutDateStr = booking.checkOutDate || booking.checkOut || booking.checkoutDate
+        
+        let checkoutDate: Date | null = null
+        if (checkoutDateStr) {
+          checkoutDate = new Date(checkoutDateStr)
+          if (isNaN(checkoutDate.getTime())) checkoutDate = null
+        }
+        
+        if (!checkoutDate && booking.dates) {
+          const dates = (booking.dates || "").split(" - ")
+          if (dates.length >= 2) {
+            const checkoutStr = dates[1].trim()
+            const parts = checkoutStr.split("/")
+            if (parts.length === 3) {
+              const day = parseInt(parts[0], 10)
+              const month = parseInt(parts[1], 10)
+              const year = parseInt(parts[2], 10)
+              if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                checkoutDate = new Date(year, month - 1, day)
+              }
+            }
+          }
+        }
+        
+        if (!checkoutDate) return false
+        
+        let checkoutDateTime: Date | null = null
+        if (checkoutTime && typeof checkoutTime === 'string' && checkoutTime.includes(':')) {
+          const [hours, minutes] = checkoutTime.split(':').map(Number)
+          if (!isNaN(hours) && !isNaN(minutes)) {
+            checkoutDateTime = new Date(checkoutDate)
+            checkoutDateTime.setHours(hours, minutes, 0, 0)
+          }
+        }
+        
+        if (!checkoutDateTime) {
+          checkoutDateTime = new Date(checkoutDate)
+          checkoutDateTime.setHours(11, 0, 0, 0)
+        }
+        
+        return now > checkoutDateTime
+      }).length
+      
+      setExpiredCheckoutsCount(expired)
     })
 
     // Listen to pending events
@@ -56,12 +116,20 @@ export function AdminSidebar() {
       unsubBookings()
       unsubEvents()
     }
-  }, [])
+  }, [currentTime])
 
   const getBadgeCount = (badgeKey?: string) => {
     if (badgeKey === "bookings") return pendingBookingsCount
     if (badgeKey === "events") return pendingEventsCount
     return 0
+  }
+  
+  // Add expired checkouts badge to bookings if any
+  const getEffectiveBadgeCount = (badgeKey?: string) => {
+    if (badgeKey === "bookings") {
+      return pendingBookingsCount + (expiredCheckoutsCount > 0 ? expiredCheckoutsCount : 0)
+    }
+    return getBadgeCount(badgeKey)
   }
 
   return (
@@ -76,6 +144,8 @@ export function AdminSidebar() {
           const Icon = item.icon
           const isActive = pathname === item.href
           const badgeCount = getBadgeCount(item.badgeKey)
+          const effectiveBadgeCount = getEffectiveBadgeCount(item.badgeKey)
+          const hasExpiredCheckouts = item.badgeKey === "bookings" && expiredCheckoutsCount > 0
           return (
             <Link
               key={item.href}
@@ -123,18 +193,24 @@ export function AdminSidebar() {
                   {item.label}
                 </span>
               </div>
-              {item.showBadge && badgeCount > 0 && (
-                <span
-                  className={cn(
-                    "flex items-center justify-center min-w-[22px] h-6 px-2 rounded-full text-xs font-bold transition-all duration-300 relative z-10",
-                    isActive
-                      ? "bg-sidebar-primary-foreground/30 text-sidebar-primary-foreground scale-110"
-                      : "bg-red-500 text-white group-hover:scale-110 group-hover:shadow-md",
-                    "animate-pulse"
+              {item.showBadge && effectiveBadgeCount > 0 && (
+                <div className="flex items-center gap-1 relative z-10">
+                  {hasExpiredCheckouts && (
+                    <span className="text-xs font-bold text-red-600 animate-pulse">🚨</span>
                   )}
-                >
-                  {badgeCount > 99 ? "99+" : badgeCount}
-                </span>
+                  <span
+                    className={cn(
+                      "flex items-center justify-center min-w-[22px] h-6 px-2 rounded-full text-xs font-bold transition-all duration-300",
+                      isActive
+                        ? "bg-sidebar-primary-foreground/30 text-sidebar-primary-foreground scale-110"
+                        : hasExpiredCheckouts
+                        ? "bg-red-600 text-white group-hover:scale-110 group-hover:shadow-md animate-pulse"
+                        : "bg-red-500 text-white group-hover:scale-110 group-hover:shadow-md",
+                    )}
+                  >
+                    {effectiveBadgeCount > 99 ? "99+" : effectiveBadgeCount}
+                  </span>
+                </div>
               )}
             </Link>
           )
