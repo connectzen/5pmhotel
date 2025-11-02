@@ -56,6 +56,10 @@ export default function RoomDetailsPage() {
   const [showCheckOutCal, setShowCheckOutCal] = useState(false)
   const [guests, setGuests] = useState("1")
   const [nights, setNights] = useState(1)
+  const [errors, setErrors] = useState({
+    checkIn: false,
+    checkOut: false,
+  })
   const today = React.useMemo(() => {
     const d = new Date()
     d.setHours(0,0,0,0)
@@ -213,18 +217,39 @@ export default function RoomDetailsPage() {
 
                 <div className="space-y-4 mb-6">
                   <div>
-                    <label className="block text-sm font-semibold text-foreground mb-2">Check-in</label>
+                    <label className="block text-sm font-semibold text-foreground mb-2">
+                      Check-in <span className="text-red-500">*</span>
+                    </label>
                     <div className="relative">
                       <button
                         type="button"
-                        className="flex items-center w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-accent text-left bg-white"
-                        onClick={() => { setShowCheckInCal(v => !v); setShowCheckOutCal(false) }}
+                        data-field="check-in"
+                        className={`flex items-center w-full px-4 py-2 border rounded-lg focus:ring-2 text-left transition-colors ${
+                          errors.checkIn
+                            ? "border-red-500 border-2 bg-red-50 focus:ring-red-500"
+                            : checkIn
+                            ? "border-green-500 bg-green-50/50 focus:ring-green-500"
+                            : "border-border bg-white focus:ring-accent"
+                        }`}
+                        onClick={() => { 
+                          setShowCheckInCal(v => !v); 
+                          setShowCheckOutCal(false)
+                          if (errors.checkIn) {
+                            setErrors(prev => ({ ...prev, checkIn: false }))
+                          }
+                        }}
                       >
-                        <CalendarIcon className="w-5 h-5 mr-2 text-muted-foreground" />
-                        <span className={checkIn ? "text-foreground" : "text-muted-foreground"}>
+                        <CalendarIcon className={`w-5 h-5 mr-2 ${errors.checkIn ? "text-red-500" : "text-muted-foreground"}`} />
+                        <span className={errors.checkIn ? "text-red-600 font-medium" : checkIn ? "text-foreground" : "text-muted-foreground"}>
                           {checkIn ? format(checkIn, "dd/MM/yyyy") : "Select date"}
                         </span>
                       </button>
+                      {errors.checkIn && (
+                        <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                          <span className="font-semibold">⚠</span>
+                          <span>Check-in date is required</span>
+                        </p>
+                      )}
                       {showCheckInCal && (
                         <div className="absolute top-12 left-0 z-20 bg-white p-2 rounded-lg shadow-lg border w-fit" tabIndex={0}>
                           <Calendar
@@ -233,10 +258,18 @@ export default function RoomDetailsPage() {
                             onSelect={(date) => {
                               if (!date) return
                               setCheckIn(date)
+                              // Clear error when date is selected
+                              if (errors.checkIn) {
+                                setErrors(prev => ({ ...prev, checkIn: false }))
+                              }
                               // auto-bump checkout if needed
                               if (!checkOut || !isAfter(checkOut, date)) {
                                 const bumped = addDays(date, 1)
                                 setCheckOut(bumped)
+                                // Clear checkout error if date is auto-set
+                                if (errors.checkOut) {
+                                  setErrors(prev => ({ ...prev, checkOut: false }))
+                                }
                               }
                               setShowCheckInCal(false)
                             }}
@@ -249,18 +282,39 @@ export default function RoomDetailsPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-foreground mb-2">Check-out</label>
+                    <label className="block text-sm font-semibold text-foreground mb-2">
+                      Check-out <span className="text-red-500">*</span>
+                    </label>
                     <div className="relative">
                       <button
                         type="button"
-                        className="flex items-center w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-accent text-left bg-white"
-                        onClick={() => { setShowCheckOutCal(v => !v); setShowCheckInCal(false) }}
+                        data-field="check-out"
+                        className={`flex items-center w-full px-4 py-2 border rounded-lg focus:ring-2 text-left transition-colors ${
+                          errors.checkOut
+                            ? "border-red-500 border-2 bg-red-50 focus:ring-red-500"
+                            : checkOut
+                            ? "border-green-500 bg-green-50/50 focus:ring-green-500"
+                            : "border-border bg-white focus:ring-accent"
+                        }`}
+                        onClick={() => { 
+                          setShowCheckOutCal(v => !v); 
+                          setShowCheckInCal(false)
+                          if (errors.checkOut) {
+                            setErrors(prev => ({ ...prev, checkOut: false }))
+                          }
+                        }}
                       >
-                        <CalendarIcon className="w-5 h-5 mr-2 text-muted-foreground" />
-                        <span className={checkOut ? "text-foreground" : "text-muted-foreground"}>
+                        <CalendarIcon className={`w-5 h-5 mr-2 ${errors.checkOut ? "text-red-500" : "text-muted-foreground"}`} />
+                        <span className={errors.checkOut ? "text-red-600 font-medium" : checkOut ? "text-foreground" : "text-muted-foreground"}>
                           {checkOut ? format(checkOut, "dd/MM/yyyy") : "Select date"}
                         </span>
                       </button>
+                      {errors.checkOut && (
+                        <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                          <span className="font-semibold">⚠</span>
+                          <span>Check-out date is required</span>
+                        </p>
+                      )}
                       {showCheckOutCal && (
                         <div className="absolute top-12 left-0 z-20 bg-white p-2 rounded-lg shadow-lg border w-fit" tabIndex={0}>
                           <Calendar
@@ -276,6 +330,10 @@ export default function RoomDetailsPage() {
                                 return
                               }
                               setCheckOut(date)
+                              // Clear error when date is selected
+                              if (errors.checkOut) {
+                                setErrors(prev => ({ ...prev, checkOut: false }))
+                              }
                               setShowCheckOutCal(false)
                             }}
                             showOutsideDays
@@ -315,12 +373,44 @@ export default function RoomDetailsPage() {
                   </div>
                 </div>
 
-                <Link
-                  href={`/booking?room=${encodeURIComponent(room.name)}&price=${room.price}&nights=${nights}${checkIn ? `&checkIn=${format(checkIn, "yyyy-MM-dd")}` : ""}${checkOut ? `&checkOut=${format(checkOut, "yyyy-MM-dd")}` : ""}&adults=${guests}&children=0`}
-                  className="w-full bg-accent text-accent-foreground py-3 rounded-lg font-semibold hover:opacity-90 transition text-center block"
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    const hasErrors = !checkIn || !checkOut
+                    
+                    if (hasErrors) {
+                      setErrors({
+                        checkIn: !checkIn,
+                        checkOut: !checkOut,
+                      })
+                      
+                      // Scroll to first error field
+                      if (!checkIn) {
+                        const checkInButton = document.querySelector('[data-field="check-in"]') as HTMLElement
+                        checkInButton?.scrollIntoView({ behavior: "smooth", block: "center" })
+                        checkInButton?.focus()
+                      } else if (!checkOut) {
+                        const checkOutButton = document.querySelector('[data-field="check-out"]') as HTMLElement
+                        checkOutButton?.scrollIntoView({ behavior: "smooth", block: "center" })
+                        checkOutButton?.focus()
+                      }
+                      
+                      toast({
+                        title: "Required fields missing",
+                        description: "Please select check-in and check-out dates before proceeding.",
+                        variant: "destructive",
+                      })
+                      return
+                    }
+                    
+                    // If validation passes, navigate to booking page
+                    window.location.href = `/booking?room=${encodeURIComponent(room.name)}&price=${room.price}&nights=${nights}${checkIn ? `&checkIn=${format(checkIn, "yyyy-MM-dd")}` : ""}${checkOut ? `&checkOut=${format(checkOut, "yyyy-MM-dd")}` : ""}&adults=${guests}&children=0`
+                  }}
+                  className="w-full bg-accent text-accent-foreground py-3 rounded-lg font-semibold hover:opacity-90 transition text-center"
                 >
                   Proceed to Booking
-                </Link>
+                </button>
               </div>
             </div>
           </div>
