@@ -58,65 +58,197 @@ export default function DashboardPage() {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     
-    // Calculate today's check-ins: only count bookings checked in TODAY with completed payments
-    // This ensures consistency with revenue - if someone checked in but cancelled/no payment, don't count them
-    const todayCheckIns = bookings.filter((b: any) => {
-      // Must be checked-in status
-      if (b.status !== "checked-in") return false
-      // Exclude cancelled bookings
-      if (b.status === "cancelled") return false
-      
-      // Parse check-in date from booking
-      let checkInDate: Date | null = null
-      
-      // Try to get check-in date from booking.checkIn (ISO format)
-      if (b.checkIn) {
-        const parsed = parseISO(b.checkIn)
-        if (isValid(parsed)) {
-          checkInDate = parsed
-        }
-      }
-      
-      // If not found, try to parse from booking.dates (format: "DD/MM/YYYY - DD/MM/YYYY")
-      if (!checkInDate && b.dates) {
-        const dates = b.dates.split(" - ")
-        if (dates.length > 0) {
-          const checkInStr = dates[0].trim()
-          // Try parsing DD/MM/YYYY format
-          const checkInParts = checkInStr.split("/")
-          if (checkInParts.length === 3) {
-            const [day, month, year] = checkInParts
-            checkInDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
-            if (isNaN(checkInDate.getTime())) checkInDate = null
+    // Calculate today's check-ins using the same logic as revenue tracking
+    // Count both bookings and events that were checked-in/approved today with completed payments
+    // Use payment dates as the primary source, matching revenue tracking exactly
+    const todayCheckIns = 
+      // Count bookings checked in today - use payment date as primary source
+      bookings.filter((b: any) => {
+        // Must be checked-in status
+        if (b.status !== "checked-in") return false
+        // Exclude cancelled bookings
+        if (b.status === "cancelled") return false
+        
+        // Check multiple sources to determine if check-in happened today
+        let checkInDate: Date | null = null
+        
+        // Priority 1: Check booking's checkIn date field (most direct)
+        if (b.checkIn) {
+          const parsed = parseISO(b.checkIn)
+          if (isValid(parsed)) {
+            checkInDate = parsed
           }
-          // If DD/MM/YYYY parsing failed, try ISO format
-          if (!checkInDate) {
-            const parsed = parseISO(checkInStr)
-            if (isValid(parsed)) {
-              checkInDate = parsed
+        }
+        
+        // Priority 2: Check payment date (for consistency with revenue - this is the most reliable)
+        const payment = payments.find((p: any) => 
+          p.bookingId === b.id && 
+          p.type === "booking" && 
+          p.status === "completed"
+        )
+        
+        if (payment) {
+          // Use the same payment date logic as revenue tracking (EXACT same as todayRevenue)
+          if (payment.date) {
+            if (typeof payment.date === 'string') {
+              if (payment.date.includes('-') && payment.date.length === 10) {
+                const parsed = parseISO(payment.date)
+                if (isValid(parsed)) {
+                  checkInDate = parsed
+                } else {
+                  checkInDate = new Date(payment.date)
+                }
+              } else {
+                checkInDate = new Date(payment.date)
+              }
+            } else if (payment.date instanceof Date) {
+              checkInDate = payment.date
+            } else {
+              checkInDate = new Date(payment.date)
+            }
+          } else if (payment.createdAt?.toDate) {
+            checkInDate = payment.createdAt.toDate()
+          } else if (payment.updatedAt?.toDate) {
+            checkInDate = payment.updatedAt.toDate()
+          }
+        }
+        
+        // Priority 3: Check booking's updatedAt (when status was changed to checked-in)
+        if (!checkInDate && b.updatedAt?.toDate) {
+          checkInDate = b.updatedAt.toDate()
+        }
+        
+        // If still no date, try parsing from dates field
+        if (!checkInDate && b.dates) {
+          const dates = b.dates.split(" - ")
+          if (dates.length > 0) {
+            const checkInStr = dates[0].trim()
+            const checkInParts = checkInStr.split("/")
+            if (checkInParts.length === 3) {
+              const [day, month, year] = checkInParts
+              checkInDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+              if (isNaN(checkInDate.getTime())) checkInDate = null
+            }
+            if (!checkInDate) {
+              const parsed = parseISO(checkInStr)
+              if (isValid(parsed)) {
+                checkInDate = parsed
+              }
             }
           }
         }
+        
+        if (!checkInDate) return false
+        
+        // Normalize to start of day and compare with today
+        checkInDate.setHours(0, 0, 0, 0)
+        return checkInDate.getTime() === today.getTime()
+      }).length +
+      // Count events approved today (event approval = check-in for events)
+      events.filter((e: any) => {
+        // Must be approved status
+        if (e.status !== "approved") return false
+        
+        // Check multiple sources to determine if approval/check-in happened today
+        let approvalDate: Date | null = null
+        
+        // Priority 1: Check event's updatedAt (when status was changed to approved)
+        if (e.updatedAt?.toDate) {
+          approvalDate = e.updatedAt.toDate()
+        }
+        
+        // Priority 2: Check payment date (for consistency with revenue)
+        if (!approvalDate) {
+          const payment = payments.find((p: any) => {
+            if (p.type !== "event" || p.status !== "completed") return false
+            // Match by event id or firestoreId
+            return p.bookingId === e.id || 
+                   p.bookingId === e.firestoreId ||
+                   p.id === e.id ||
+                   p.id === e.firestoreId
+          })
+          
+          if (payment) {
+            // Use the same payment date logic as revenue tracking
+            if (payment.date) {
+              if (typeof payment.date === 'string') {
+                if (payment.date.includes('-') && payment.date.length === 10) {
+                  approvalDate = parseISO(payment.date)
+                  if (!isValid(approvalDate)) {
+                    approvalDate = new Date(payment.date)
+                  }
+                } else {
+                  approvalDate = new Date(payment.date)
+                }
+              } else if (payment.date instanceof Date) {
+                approvalDate = payment.date
+              } else {
+                approvalDate = new Date(payment.date)
+              }
+            } else if (payment.createdAt?.toDate) {
+              approvalDate = payment.createdAt.toDate()
+            } else if (payment.updatedAt?.toDate) {
+              approvalDate = payment.updatedAt.toDate()
+            }
+          }
+        }
+        
+        // Priority 3: Check event date field as fallback
+        if (!approvalDate && e.date) {
+          const parsed = parseISO(e.date)
+          if (isValid(parsed)) {
+            approvalDate = parsed
+          }
+        }
+        
+        if (!approvalDate) return false
+        
+        // Normalize to start of day and compare with today
+        approvalDate.setHours(0, 0, 0, 0)
+        return approvalDate.getTime() === today.getTime()
+      }).length
+    
+    // Calculate today's check-outs: only count bookings checked out TODAY
+    // Check-outs only apply to bookings (events don't have check-out)
+    // Use booking's updatedAt to determine when status was changed to checked-out today
+    const todayCheckOuts = bookings.filter((b: any) => {
+      // Must be checked-out status
+      if (b.status !== "checked-out") return false
+      
+      // Use booking's updatedAt timestamp to determine when status was changed to checked-out
+      // This is the most reliable way to know when check-out actually happened
+      let checkOutDate: Date | null = null
+      
+      // Priority 1: Check booking's updatedAt (when status was changed to checked-out)
+      if (b.updatedAt?.toDate) {
+        checkOutDate = b.updatedAt.toDate()
+      }
+      // Priority 2: Check if booking has a checkOutDate field that was set today
+      else if (b.checkOut) {
+        const parsed = parseISO(b.checkOut)
+        if (isValid(parsed)) {
+          checkOutDate = parsed
+        }
+      }
+      // Priority 3: Check payment's updatedAt (fallback if payment was updated when checking out)
+      else {
+        const payment = payments.find((p: any) => 
+          p.bookingId === b.id && 
+          p.type === "booking" && 
+          p.status === "completed"
+        )
+        if (payment?.updatedAt?.toDate) {
+          checkOutDate = payment.updatedAt.toDate()
+        }
       }
       
-      // If we still don't have a date, we can't determine if it's today's check-in
-      if (!checkInDate) return false
+      // If we still don't have a date, we can't determine if it's today's check-out
+      if (!checkOutDate) return false
       
-      // Check if check-in date is today
-      const checkInStart = startOfDay(checkInDate)
-      if (!isToday(checkInStart)) return false
-      
-      // Verify booking has a completed payment to ensure consistency with revenue
-      const hasCompletedPayment = payments.some((p: any) => 
-        p.bookingId === b.id && 
-        p.type === "booking" && 
-        p.status === "completed"
-      )
-      
-      return hasCompletedPayment
+      // Normalize to start of day and compare with today (same as revenue logic)
+      checkOutDate.setHours(0, 0, 0, 0)
+      return checkOutDate.getTime() === today.getTime()
     }).length
-    
-    const checkedOut = bookings.filter((b: any) => b.status === "checked-out").length
     
     // Calculate today's revenue from completed payments created today
     // Works for both bookings and events - uses same logic as monthly revenue
@@ -188,7 +320,7 @@ export default function DashboardPage() {
     const pendingEventsCount = events.filter((e: any) => e.status === "pending").length
     setKpis({ 
       todayCheckIns: todayCheckIns, 
-      todayCheckOuts: checkedOut, 
+      todayCheckOuts: todayCheckOuts, 
       occupancyRate, 
       revenueThisMonth: revenue,
       todayRevenue,

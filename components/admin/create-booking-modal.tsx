@@ -108,27 +108,102 @@ export function CreateBookingModal({ isOpen, onClose, onSuccess }: CreateBooking
 
   // Calculate available rooms
   const availableRooms = useMemo(() => {
+    // If dates aren't selected, show all rooms with their total quantity
     if (!checkInDate || !checkOutDate || !isValid(checkInDate) || !isValid(checkOutDate)) {
-      return rooms
+      return rooms.map(room => ({
+        ...room,
+        availableCount: room.quantity || 1
+      }))
     }
 
     return rooms.map(room => {
+      const roomQuantity = room.quantity || 1
+      
+      // Find bookings that overlap with the selected dates
       const conflictingBookings = bookings.filter(b => {
+        // Exclude cancelled and rejected bookings
         if (b.status === "cancelled" || b.status === "rejected") return false
+        
+        // Must match the room name
         if (b.room !== room.name) return false
         
-        const bookingCheckIn = parseISO(b.checkIn || b.dates?.split(" - ")[0])
-        const bookingCheckOut = parseISO(b.checkOut || b.dates?.split(" - ")[1])
+        // Only count active bookings (pending, approved, checked-in)
+        if (b.status !== "pending" && b.status !== "approved" && b.status !== "checked-in") return false
         
-        if (!isValid(bookingCheckIn) || !isValid(bookingCheckOut)) return false
+        // Try to parse booking dates from multiple sources
+        let bookingCheckIn: Date | null = null
+        let bookingCheckOut: Date | null = null
         
+        // Priority 1: Check checkIn and checkOut fields (ISO format)
+        if (b.checkIn) {
+          const parsed = parseISO(b.checkIn)
+          if (isValid(parsed)) {
+            bookingCheckIn = parsed
+          }
+        }
+        if (b.checkOut) {
+          const parsed = parseISO(b.checkOut)
+          if (isValid(parsed)) {
+            bookingCheckOut = parsed
+          }
+        }
+        
+        // Priority 2: Parse from dates field (format: "DD/MM/YYYY - DD/MM/YYYY")
+        if ((!bookingCheckIn || !bookingCheckOut) && b.dates) {
+          const dates = b.dates.split(" - ")
+          if (dates.length >= 2) {
+            const checkInStr = dates[0].trim()
+            const checkOutStr = dates[1].trim()
+            
+            // Try parsing DD/MM/YYYY format
+            const checkInParts = checkInStr.split("/")
+            const checkOutParts = checkOutStr.split("/")
+            
+            if (checkInParts.length === 3 && !bookingCheckIn) {
+              const [day, month, year] = checkInParts
+              const parsed = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+              if (!isNaN(parsed.getTime())) {
+                bookingCheckIn = parsed
+              }
+            }
+            if (checkOutParts.length === 3 && !bookingCheckOut) {
+              const [day, month, year] = checkOutParts
+              const parsed = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+              if (!isNaN(parsed.getTime())) {
+                bookingCheckOut = parsed
+              }
+            }
+            
+            // Fallback to ISO parsing
+            if (!bookingCheckIn) {
+              const parsed = parseISO(checkInStr)
+              if (isValid(parsed)) {
+                bookingCheckIn = parsed
+              }
+            }
+            if (!bookingCheckOut) {
+              const parsed = parseISO(checkOutStr)
+              if (isValid(parsed)) {
+                bookingCheckOut = parsed
+              }
+            }
+          }
+        }
+        
+        // If we still don't have valid dates, skip this booking
+        if (!bookingCheckIn || !bookingCheckOut || !isValid(bookingCheckIn) || !isValid(bookingCheckOut)) {
+          return false
+        }
+        
+        // Check if dates overlap: booking overlaps if it starts before selection ends and ends after selection starts
         return (checkInDate < bookingCheckOut && checkOutDate > bookingCheckIn)
       })
       
+      // Count how many rooms are booked (each booking takes 1 room)
       const bookedCount = conflictingBookings.length
-      const available = (room.quantity || 1) - bookedCount
+      const available = Math.max(0, roomQuantity - bookedCount)
       
-      return { ...room, availableCount: Math.max(0, available) }
+      return { ...room, availableCount: available }
     })
   }, [rooms, bookings, checkInDate, checkOutDate])
 
@@ -272,17 +347,17 @@ export function CreateBookingModal({ isOpen, onClose, onSuccess }: CreateBooking
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-foreground">Create New Booking</h2>
-            <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+      <Card className="w-full max-w-4xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-6 pb-4 border-b border-border flex-shrink-0">
+          <h2 className="text-xl font-semibold text-foreground">Create New Booking</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-          {/* Progress Steps */}
-          <div className="flex items-center justify-center mb-6 gap-2">
+        {/* Progress Steps */}
+        <div className="flex items-center justify-center py-4 px-6 border-b border-border flex-shrink-0">
+          <div className="flex items-center gap-2">
             {[1, 2, 3].map((s) => (
               <div key={s} className="flex items-center">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
@@ -294,7 +369,9 @@ export function CreateBookingModal({ isOpen, onClose, onSuccess }: CreateBooking
               </div>
             ))}
           </div>
+        </div>
 
+        <div className="overflow-y-auto flex-1 p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Step 1: Room & Dates Selection */}
             {step === 1 && (
@@ -437,12 +514,15 @@ export function CreateBookingModal({ isOpen, onClose, onSuccess }: CreateBooking
                   <p className="text-sm text-red-500 mt-2">Please select at least one room</p>
                 )}
 
-                {nights > 0 && (
-                  <div className="p-4 bg-muted rounded-lg">
-                    <p className="font-semibold">Total: KES {calculateTotal().toLocaleString()}</p>
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="font-semibold">Total: KES {calculateTotal().toLocaleString()}</p>
+                  {nights > 0 && (
                     <p className="text-sm text-muted-foreground">{nights} night(s)</p>
-                  </div>
-                )}
+                  )}
+                  {nights === 1 && (!checkInDate || !checkOutDate) && (
+                    <p className="text-sm text-muted-foreground">Select dates to see availability</p>
+                  )}
+                </div>
               </div>
             )}
 

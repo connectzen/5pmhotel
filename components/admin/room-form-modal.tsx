@@ -106,7 +106,7 @@ export function RoomFormModal({ room, onSave, onClose, saving }: RoomFormModalPr
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
       <Card className="w-full max-w-md max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-6 pb-4 border-b border-border">
           <h2 className="text-xl font-semibold text-foreground">{room ? "Edit Room" : "Add New Room"}</h2>
