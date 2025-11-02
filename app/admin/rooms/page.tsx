@@ -129,15 +129,15 @@ export default function RoomsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 min-w-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-serif font-bold text-foreground">Rooms Management</h1>
-          <p className="text-muted-foreground mt-1">Manage room types and inventory</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground">Rooms Management</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">Manage room types and inventory</p>
         </div>
         <Button
-          className="gap-2"
+          className="gap-2 hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
           onClick={() => {
             setEditingRoom(null)
             setShowForm(true)
@@ -153,14 +153,14 @@ export default function RoomsPage() {
 
       {/* Availability Filter */}
       <Card className="p-4">
-        <div className="flex items-center gap-4">
-          <span className="text-sm font-medium text-foreground">Filter by Availability:</span>
-          <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <span className="text-sm font-medium text-foreground whitespace-nowrap">Filter by Availability:</span>
+          <div className="flex flex-wrap gap-2">
             <Button
               variant={availabilityFilter === "all" ? "default" : "outline"}
               size="sm"
               onClick={() => setAvailabilityFilter("all")}
-              className="hover:scale-105 transition-transform duration-200"
+              className="hover:scale-105 transition-transform duration-200 whitespace-nowrap"
             >
               All Rooms ({roomsWithAvailability.reduce((sum, r) => sum + (r.quantity ?? 0), 0)})
             </Button>
@@ -168,7 +168,7 @@ export default function RoomsPage() {
               variant={availabilityFilter === "available" ? "default" : "outline"}
               size="sm"
               onClick={() => setAvailabilityFilter("available")}
-              className="hover:scale-105 transition-transform duration-200"
+              className="hover:scale-105 transition-transform duration-200 whitespace-nowrap"
             >
               Available ({roomsWithAvailability.filter((r) => r.isAvailable).reduce((sum, r) => sum + (r.availableCount ?? 0), 0)})
             </Button>
@@ -176,7 +176,7 @@ export default function RoomsPage() {
               variant={availabilityFilter === "out-of-stock" ? "default" : "outline"}
               size="sm"
               onClick={() => setAvailabilityFilter("out-of-stock")}
-              className="hover:scale-105 transition-transform duration-200"
+              className="hover:scale-105 transition-transform duration-200 whitespace-nowrap"
             >
               Out of Stock ({roomsWithAvailability.filter((r) => r.isOutOfStock).length})
             </Button>

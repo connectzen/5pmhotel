@@ -38,7 +38,7 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 min-w-0">
       <div>
         <h1 className="text-3xl font-serif font-bold text-foreground">Users</h1>
         <p className="text-muted-foreground mt-1">Manage user roles</p>

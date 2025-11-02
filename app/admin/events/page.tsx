@@ -552,14 +552,14 @@ export default function EventsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 min-w-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-serif font-bold text-foreground">Events</h1>
-          <p className="text-muted-foreground mt-1">Approve client event requests and manage booked events</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground">Events</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">Approve client event requests and manage booked events</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 mt-4 sm:mt-0">
           <Button
             onClick={() => setCreateEventModalOpen(true)}
             className="gap-2 hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
@@ -616,12 +616,12 @@ export default function EventsPage() {
             const isRejected = status === "rejected"
             
             return (
-              <Card key={ev.firestoreId || ev.id} className="p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
+              <Card key={ev.firestoreId || ev.id} className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                  <div className="flex-1 min-w-0">
                     <h3 className="text-lg font-semibold text-foreground">{ev.name}</h3>
                     <p className="text-sm text-muted-foreground mt-1">{ev.venueName}</p>
-                    <div className="flex flex-wrap items-center gap-4 mt-3 text-sm">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-3 text-sm">
                       <span><strong>Date:</strong> {ev.date}</span>
                       <span><strong>Guests:</strong> {ev.guests}</span>
                       <span><strong>Client:</strong> {ev.customerName} ({ev.customerEmail})</span>
@@ -640,14 +640,16 @@ export default function EventsPage() {
                     </div>
                     {ev.note && <p className="text-sm mt-2">Note: {ev.note}</p>}
                   </div>
-                  <div className="flex flex-col items-end gap-3">
-                    <Badge className={`capitalize ${getBookingStatusColor(status)}`}>{status}</Badge>
-                    {ev.eventType && (
-                      <Badge variant="outline" className="text-xs">
-                        {ev.eventType}
-                      </Badge>
-                    )}
-                    <div className="flex gap-2">
+                  <div className="flex flex-col sm:items-end gap-3 w-full sm:w-auto">
+                    <div className="flex items-center gap-2 flex-wrap sm:justify-end">
+                      <Badge className={`capitalize ${getBookingStatusColor(status)}`}>{status}</Badge>
+                      {ev.eventType && (
+                        <Badge variant="outline" className="text-xs">
+                          {ev.eventType}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
                       {isPending && (
                         <>
                           <Button 
@@ -730,12 +732,12 @@ export default function EventsPage() {
             <Card className="p-6 text-muted-foreground">No client-created events yet.</Card>
           )}
           {createdEvents.map((ev) => (
-            <Card key={ev.firestoreId || ev.id} className="p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
+            <Card key={ev.firestoreId || ev.id} className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div className="flex-1 min-w-0">
                   <h3 className="text-lg font-semibold text-foreground">{ev.name}</h3>
                   <p className="text-sm text-muted-foreground mt-1">{ev.venueName}</p>
-                  <div className="flex flex-wrap items-center gap-4 mt-3 text-sm">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-3 text-sm">
                     <span><strong>Date:</strong> {ev.date}</span>
                     <span><strong>Guests:</strong> {ev.guests}</span>
                     <span><strong>Client:</strong> {ev.customerName} ({ev.customerEmail})</span>
@@ -754,14 +756,16 @@ export default function EventsPage() {
                   </div>
                   {ev.note && <p className="text-sm mt-2">Note: {ev.note}</p>}
                 </div>
-                  <div className="flex flex-col items-end gap-3">
-                  <Badge className={`capitalize ${getBookingStatusColor("pending")}`}>pending</Badge>
-                  {ev.eventType && (
-                    <Badge variant="outline" className="text-xs">
-                      {ev.eventType}
-                    </Badge>
-                  )}
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:items-end gap-3 w-full sm:w-auto">
+                    <div className="flex items-center gap-2 flex-wrap sm:justify-end">
+                      <Badge className={`capitalize ${getBookingStatusColor("pending")}`}>pending</Badge>
+                      {ev.eventType && (
+                        <Badge variant="outline" className="text-xs">
+                          {ev.eventType}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
                     <Button 
                       onClick={() => openApprovalModal(ev)} 
                       size="sm"
@@ -804,12 +808,12 @@ export default function EventsPage() {
             <Card className="p-6 text-muted-foreground">No booked events yet.</Card>
           )}
           {bookedEvents.map((be) => (
-            <Card key={be.firestoreId || be.id} className="p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
+            <Card key={be.firestoreId || be.id} className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div className="flex-1 min-w-0">
                   <h3 className="text-lg font-semibold text-foreground">{be.name || "-"}</h3>
                   <p className="text-sm text-muted-foreground mt-1">{be.venueName || "-"}</p>
-                  <div className="flex flex-wrap items-center gap-4 mt-3 text-sm">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-3 text-sm">
                     <span className="font-mono text-xs"><strong>ID:</strong> {be.id || "-"}</span>
                     <span><strong>Date:</strong> {be.date || "-"}</span>
                     <span><strong>Guests:</strong> {be.guests || "-"}</span>
@@ -829,14 +833,16 @@ export default function EventsPage() {
                   </div>
                   {be.note && <p className="text-sm mt-2">Note: {be.note}</p>}
                 </div>
-                <div className="flex flex-col items-end gap-3">
-                  <Badge className={`capitalize ${getBookingStatusColor(be.status)}`}>{be.status}</Badge>
-                  {be.eventType && (
-                    <Badge variant="outline" className="text-xs">
-                      {be.eventType}
-                    </Badge>
-                  )}
-                  <div className="flex gap-2">
+                <div className="flex flex-col sm:items-end gap-3 w-full sm:w-auto">
+                  <div className="flex items-center gap-2 flex-wrap sm:justify-end">
+                    <Badge className={`capitalize ${getBookingStatusColor(be.status)}`}>{be.status}</Badge>
+                    {be.eventType && (
+                      <Badge variant="outline" className="text-xs">
+                        {be.eventType}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -862,12 +868,12 @@ export default function EventsPage() {
             <Card className="p-6 text-muted-foreground">No rejected events.</Card>
           )}
           {rejectedEvents.map((ev) => (
-            <Card key={ev.firestoreId || ev.id} className="p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
+            <Card key={ev.firestoreId || ev.id} className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div className="flex-1 min-w-0">
                   <h3 className="text-lg font-semibold text-foreground">{ev.name}</h3>
                   <p className="text-sm text-muted-foreground mt-1">{ev.venueName}</p>
-                  <div className="flex flex-wrap items-center gap-4 mt-3 text-sm">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-3 text-sm">
                     <span><strong>Date:</strong> {ev.date}</span>
                     <span><strong>Guests:</strong> {ev.guests}</span>
                     <span><strong>Client:</strong> {ev.customerName} ({ev.customerEmail})</span>
@@ -886,14 +892,16 @@ export default function EventsPage() {
                   </div>
                   {ev.note && <p className="text-sm mt-2">Note: {ev.note}</p>}
                 </div>
-                <div className="flex flex-col items-end gap-3">
-                  <Badge className={`capitalize ${getBookingStatusColor("cancelled")}`}>rejected</Badge>
-                  {ev.eventType && (
-                    <Badge variant="outline" className="text-xs">
-                      {ev.eventType}
-                    </Badge>
-                  )}
-                  <div className="flex gap-2">
+                <div className="flex flex-col sm:items-end gap-3 w-full sm:w-auto">
+                  <div className="flex items-center gap-2 flex-wrap sm:justify-end">
+                    <Badge className={`capitalize ${getBookingStatusColor("cancelled")}`}>rejected</Badge>
+                    {ev.eventType && (
+                      <Badge variant="outline" className="text-xs">
+                        {ev.eventType}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
                     <Button
                       variant="ghost"
                       size="sm"

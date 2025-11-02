@@ -160,15 +160,138 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
   }
+  
+  *::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+  
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans, "Open Sans", sans-serif);
+    /* Prevent page-level horizontal scrolling */
+    overflow-x: hidden;
+    overflow-y: auto;
   }
   
   /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
+    /* Prevent page-level horizontal scrolling */
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  
+  /* Show horizontal scrollbars for table containers and overflow elements */
+  /* This helps users know when there's more content to scroll horizontally */
+  [class*="overflow-x-auto"],
+  .overflow-x-auto {
+    scrollbar-width: thin; /* Firefox - show thin scrollbar */
+    scrollbar-color: rgba(156, 163, 175, 0.6) transparent; /* Firefox - thumb and track color */
+    -ms-overflow-style: scrollbar; /* IE and Edge - show scrollbar */
+  }
+  
+  /* Webkit browsers (Chrome, Safari, Opera) - show horizontal scrollbar */
+  [class*="overflow-x-auto"]::-webkit-scrollbar,
+  .overflow-x-auto::-webkit-scrollbar {
+    display: block;
+    height: 8px; /* Horizontal scrollbar height */
+  }
+  
+  [class*="overflow-x-auto"]::-webkit-scrollbar-track,
+  .overflow-x-auto::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 4px;
+  }
+  
+  [class*="overflow-x-auto"]::-webkit-scrollbar-thumb,
+  .overflow-x-auto::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.6);
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+  
+  [class*="overflow-x-auto"]::-webkit-scrollbar-thumb:hover,
+  .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+    background: rgba(156, 163, 175, 0.8);
+  }
+  
+  /* Dark theme scrollbar styling */
+  .dark [class*="overflow-x-auto"]::-webkit-scrollbar-thumb,
+  .dark .overflow-x-auto::-webkit-scrollbar-thumb {
+    background: rgba(203, 213, 225, 0.4);
+  }
+  
+  .dark [class*="overflow-x-auto"]::-webkit-scrollbar-thumb:hover,
+  .dark .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+    background: rgba(203, 213, 225, 0.6);
+  }
+  
+  .dark [class*="overflow-x-auto"],
+  .dark .overflow-x-auto {
+    scrollbar-color: rgba(203, 213, 225, 0.4) transparent;
+  }
+}
+
+/* Responsive card layouts - automatically handles mobile, tablet, desktop */
+@layer utilities {
+  /* Global responsive card container - automatically stacks on mobile */
+  /* Targets Card components with flex layouts inside */
+  [data-slot="card"] {
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden; /* Prevent content overflow */
+  }
+  
+  /* Automatically make flex containers with justify-between stack on mobile */
+  /* This targets common patterns like: <div className="flex justify-between"> */
+  @media (max-width: 639px) {
+    [data-slot="card"] > .flex.items-start.justify-between,
+    [data-slot="card"] > .flex.justify-between {
+      flex-direction: column !important;
+      gap: 1rem !important;
+    }
+    
+    /* Make button groups wrap on mobile */
+    [data-slot="card"] .flex.gap-2:has(button),
+    [data-slot="card"] .flex.gap-2:has(.btn) {
+      flex-wrap: wrap !important;
+      width: 100% !important;
+    }
+    
+    /* Ensure badges and buttons don't overflow */
+    [data-slot="card"] > div > div:last-child {
+      width: 100%;
+      align-items: flex-start !important;
+    }
+  }
+  
+  /* Responsive text sizing */
+  .responsive-text-sm {
+    font-size: 0.875rem;
+  }
+  
+  @media (max-width: 640px) {
+    .responsive-text-sm {
+      font-size: 0.75rem;
+    }
+  }
+  
+  /* Ensure all containers respect viewport width */
+  .container-responsive {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  @media (min-width: 640px) {
+    .container-responsive {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
   }
 }
 

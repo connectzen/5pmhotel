@@ -72,7 +72,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="dark flex h-screen bg-background">
+    <div className="dark flex h-screen bg-background overflow-hidden">
       {/* Desktop sidebar */}
       <div className="hidden md:flex transition-all duration-300">
         <AdminSidebar 
@@ -91,13 +91,13 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      <div className="flex-1 flex flex-col overflow-hidden transition-all duration-300">
+      <div className="flex-1 flex flex-col overflow-hidden transition-all duration-300 min-w-0">
         <AdminTopbar 
           onToggleSidebar={() => setSidebarOpen((v) => !v)}
           onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
           sidebarCollapsed={sidebarCollapsed}
         />
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-y-auto overflow-x-auto min-w-0">{children}</main>
       </div>
     </div>
   )
