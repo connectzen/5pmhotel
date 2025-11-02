@@ -141,15 +141,7 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard title="Today's Check-ins" value={kpis.todayCheckIns} icon="CheckIn" trend="" />
-        <KPICard title="Today's Check-outs" value={kpis.todayCheckOuts} icon="CheckOut" trend="" />
-        <KPICard title="Today's Revenue" value={`KSh ${(kpis as any).todayRevenue?.toLocaleString() || 0}`} icon="Revenue" trend="" />
-        <KPICard title="Monthly Revenue" value={`KSh ${(kpis as any).monthlyRevenue?.toLocaleString() || 0}`} icon="Revenue" trend="" />
-      </div>
-
-      {/* Pending Cards */}
+      {/* Pending Cards - Second Priority */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Link href="/admin/bookings?filter=pending">
           <Card className="p-6 hover:shadow-xl transition-all duration-300 cursor-pointer relative border-l-4 border-l-red-500/50 bg-gradient-to-br from-card to-card/95 group overflow-hidden">
@@ -201,6 +193,14 @@ export default function DashboardPage() {
             </div>
           </Card>
         </Link>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPICard title="Today's Check-ins" value={kpis.todayCheckIns} icon="CheckIn" trend="" />
+        <KPICard title="Today's Check-outs" value={kpis.todayCheckOuts} icon="CheckOut" trend="" />
+        <KPICard title="Today's Revenue" value={`KSh ${(kpis as any).todayRevenue?.toLocaleString() || 0}`} icon="Revenue" trend="" />
+        <KPICard title="Monthly Revenue" value={`KSh ${(kpis as any).monthlyRevenue?.toLocaleString() || 0}`} icon="Revenue" trend="" />
       </div>
 
       {/* --- Report Summary Section (copied from reports page) --- */}
