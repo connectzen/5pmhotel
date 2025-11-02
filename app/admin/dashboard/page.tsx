@@ -149,7 +149,7 @@ export default function DashboardPage() {
             <div className="relative flex items-center justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-3">
-                  <h3 className="font-semibold text-foreground text-lg">Pending Bookings</h3>
+                  <h3 className="font-semibold text-foreground text-lg">Pending Room Bookings</h3>
                   {(kpis as any).pendingBookings > 0 && (
                     <span className="flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full text-xs font-bold bg-red-500 text-white shadow-md animate-pulse">
                       {(kpis as any).pendingBookings > 99 ? "99+" : (kpis as any).pendingBookings}

@@ -4,8 +4,15 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import type { Booking } from "@/lib/admin-store"
-import { Eye, CheckCircle, LogIn, LogOut, Trash2, Pencil, AlertTriangle, Phone } from "lucide-react"
+import { Eye, CheckCircle, LogIn, LogOut, Trash2, Pencil, AlertTriangle, Phone, MoreVertical } from "lucide-react"
 import { parseISO, isValid } from "date-fns"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface BookingsTableProps {
   bookings: Booking[]
@@ -101,17 +108,17 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
   return (
     <Card className="overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full min-w-[1200px]">
           <thead className="bg-muted border-b border-border">
             <tr>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Customer Email</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Customer</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Mobile Number</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Room</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Dates</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Status</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Amount</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Actions</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[180px]">Customer Email</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[120px]">Customer</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[130px]">Mobile Number</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[100px]">Room</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[180px]">Dates</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[100px]">Status</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[100px]">Amount</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[120px]">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -125,9 +132,9 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
                   isExpired ? 'bg-red-50 border-l-4 border-l-red-500' : ''
                 }`}
               >
-                <td className="px-6 py-4 text-sm font-medium text-foreground">{(booking as any).email || booking.id}</td>
-                <td className="px-6 py-4 text-sm text-foreground">{booking.customer}</td>
-                <td className="px-6 py-4 text-sm text-foreground">
+                <td className="px-4 py-4 text-sm font-medium text-foreground">{(booking as any).email || booking.id}</td>
+                <td className="px-4 py-4 text-sm text-foreground">{booking.customer}</td>
+                <td className="px-4 py-4 text-sm text-foreground">
                   {(booking as any).phone ? (
                     <a 
                       href={`tel:${(booking as any).phone.replace(/\s|-/g, '')}`}
@@ -141,8 +148,8 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
                     <span className="text-muted-foreground">N/A</span>
                   )}
                 </td>
-                <td className="px-6 py-4 text-sm text-foreground">{booking.room}</td>
-                <td className="px-6 py-4 text-sm text-muted-foreground">
+                <td className="px-4 py-4 text-sm text-foreground">{booking.room}</td>
+                <td className="px-4 py-4 text-sm text-muted-foreground">
                   {booking.dates}
                   {booking.status === "checked-in" && (
                     <div className="mt-1 space-y-0.5">
@@ -192,7 +199,7 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
                     </div>
                   )}
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-4 py-4">
                   <div className="flex items-center gap-2">
                     <Badge className={`capitalize ${getStatusColor(booking.status)}`}>{booking.status}</Badge>
                     {booking.status === "checked-in" && expiration.expired && (
@@ -200,103 +207,105 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-4 text-sm font-medium text-foreground">KES {booking.amount.toLocaleString()}</td>
-                <td className="px-6 py-4">
-                  <div className="flex gap-2 flex-wrap">
-                    <Button variant="ghost" size="sm" onClick={() => onSelectBooking(booking)} className="gap-1">
-                      <Eye className="w-4 h-4" />
-                      View
-                    </Button>
-                    {booking.status === "pending" && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onStatusChange(booking.id, "approved")}
-                          className="gap-1 text-green-600 hover:text-green-700"
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                          Approve
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onStatusChange(booking.id, "rejected")}
-                          className="gap-1 text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Reject
-                        </Button>
-                      </>
-                    )}
-                    {booking.status === "approved" && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onStatusChange(booking.id, "checked-in")}
-                          className="gap-1 text-blue-600 hover:text-blue-700"
-                        >
-                          <LogIn className="w-4 h-4" />
-                          Check-in
-                        </Button>
-                      </>
-                    )}
-                    {booking.status === "checked-in" && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onStatusChange(booking.id, "checked-out")}
-                        className="gap-1 text-orange-600 hover:text-orange-700"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        Check-out
+                <td className="px-4 py-4 text-sm font-medium text-foreground">KES {booking.amount.toLocaleString()}</td>
+                <td className="px-4 py-4">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <span className="sr-only">Open menu</span>
+                        <MoreVertical className="h-4 w-4" />
                       </Button>
-                    )}
-                    {booking.status === "rejected" && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onStatusChange(booking.id, "approved")}
-                        className="gap-1 text-green-600 hover:text-green-700"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        Re-approve
-                      </Button>
-                    )}
-                    {booking.status === "cancelled" && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onStatusChange(booking.id, "approved")}
-                        className="gap-1 text-green-600 hover:text-green-700"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        Reapprove
-                      </Button>
-                    )}
-                    {booking.status !== "cancelled" && booking.status !== "rejected" && booking.status !== "checked-out" && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onStatusChange(booking.id, "cancelled")}
-                        className="gap-1 text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Cancel
-                      </Button>
-                    )}
-                    <Button variant="ghost" size="sm" onClick={() => onEdit(booking)} className="gap-1">
-                      <Pencil className="w-4 h-4" />
-                      Edit
-                    </Button>
-                    {(booking.status === "rejected" || booking.status === "checked-out" || booking.status === "cancelled") && (
-                      <Button variant="ghost" size="sm" onClick={() => onDelete(booking.id)} className="gap-1 text-red-600 hover:text-red-700">
-                        <Trash2 className="w-4 h-4" />
-                        Delete
-                      </Button>
-                    )}
-                  </div>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem onClick={() => onSelectBooking(booking)}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        View Details
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onEdit(booking)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
+                      {booking.status === "pending" && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => onStatusChange(booking.id, "approved")}
+                            className="text-green-600 focus:text-green-700"
+                          >
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Approve
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => onStatusChange(booking.id, "rejected")}
+                            variant="destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Reject
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                      {booking.status === "approved" && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => onStatusChange(booking.id, "checked-in")}
+                            className="text-blue-600 focus:text-blue-700"
+                          >
+                            <LogIn className="mr-2 h-4 w-4" />
+                            Check-in
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                      {booking.status === "checked-in" && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => onStatusChange(booking.id, "checked-out")}
+                            className="text-orange-600 focus:text-orange-700"
+                          >
+                            <LogOut className="mr-2 h-4 w-4" />
+                            Check-out
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                      {(booking.status === "rejected" || booking.status === "cancelled") && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => onStatusChange(booking.id, "approved")}
+                            className="text-green-600 focus:text-green-700"
+                          >
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Re-approve
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                      {booking.status !== "cancelled" && booking.status !== "rejected" && booking.status !== "checked-out" && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => onStatusChange(booking.id, "cancelled")}
+                            variant="destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Cancel
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                      {(booking.status === "rejected" || booking.status === "checked-out" || booking.status === "cancelled") && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => onDelete(booking.id)}
+                            variant="destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </td>
               </tr>
             )

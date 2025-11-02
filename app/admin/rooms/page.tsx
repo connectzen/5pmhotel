@@ -162,7 +162,7 @@ export default function RoomsPage() {
               onClick={() => setAvailabilityFilter("all")}
               className="hover:scale-105 transition-transform duration-200"
             >
-              All Rooms ({roomsWithAvailability.length})
+              All Rooms ({roomsWithAvailability.reduce((sum, r) => sum + (r.quantity ?? 0), 0)})
             </Button>
             <Button
               variant={availabilityFilter === "available" ? "default" : "outline"}
@@ -170,7 +170,7 @@ export default function RoomsPage() {
               onClick={() => setAvailabilityFilter("available")}
               className="hover:scale-105 transition-transform duration-200"
             >
-              Available ({roomsWithAvailability.filter((r) => r.isAvailable).length})
+              Available ({roomsWithAvailability.filter((r) => r.isAvailable).reduce((sum, r) => sum + (r.availableCount ?? 0), 0)})
             </Button>
             <Button
               variant={availabilityFilter === "out-of-stock" ? "default" : "outline"}
