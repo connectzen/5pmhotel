@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import type { Booking } from "@/lib/admin-store"
-import { Eye, CheckCircle, LogIn, LogOut, Trash2, Pencil, AlertTriangle } from "lucide-react"
+import { Eye, CheckCircle, LogIn, LogOut, Trash2, Pencil, AlertTriangle, Phone } from "lucide-react"
 import { parseISO, isValid } from "date-fns"
 
 interface BookingsTableProps {
@@ -94,6 +94,7 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
             <tr>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Customer Email</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Customer</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Mobile Number</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Room</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Dates</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Status</th>
@@ -106,6 +107,20 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
               <tr key={booking.id} className="hover:bg-muted/50 transition-colors">
                 <td className="px-6 py-4 text-sm font-medium text-foreground">{(booking as any).email || booking.id}</td>
                 <td className="px-6 py-4 text-sm text-foreground">{booking.customer}</td>
+                <td className="px-6 py-4 text-sm text-foreground">
+                  {(booking as any).phone ? (
+                    <a 
+                      href={`tel:${(booking as any).phone.replace(/\s|-/g, '')}`}
+                      className="flex items-center gap-1 text-accent hover:text-accent/80 hover:underline font-medium"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Phone className="w-3 h-3" />
+                      {(booking as any).phone}
+                    </a>
+                  ) : (
+                    <span className="text-muted-foreground">N/A</span>
+                  )}
+                </td>
                 <td className="px-6 py-4 text-sm text-foreground">{booking.room}</td>
                 <td className="px-6 py-4 text-sm text-muted-foreground">
                   {booking.dates}

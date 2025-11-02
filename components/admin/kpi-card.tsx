@@ -29,25 +29,29 @@ export function KPICard({ title, value, icon, trend }: KPICardProps) {
   const isPositive = trend?.startsWith("+")
 
   return (
-    <Card className="p-6">
+    <Card className="p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-l-accent/50 bg-gradient-to-br from-card to-card/95 group">
       <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground mb-2">{title}</p>
-          <p className="text-3xl font-bold text-foreground">{value}</p>
+        <div className="flex-1">
+          <p className="text-sm text-muted-foreground mb-2 font-medium">{title}</p>
+          <p className="text-3xl font-bold text-foreground mb-1 group-hover:text-accent transition-colors">{value}</p>
           {trend && (
             <div className="flex items-center gap-1 mt-2">
               {isPositive ? (
-                <TrendingUp className="w-4 h-4 text-green-600" />
+                <TrendingUp className="w-4 h-4 text-green-500" />
               ) : (
-                <TrendingDown className="w-4 h-4 text-blue-600" />
+                <TrendingDown className="w-4 h-4 text-blue-500" />
               )}
-              <span className={isPositive ? "text-green-600" : "text-blue-600"} style={{ fontSize: "0.875rem" }}>
+              <span className={isPositive ? "text-green-500 font-semibold" : "text-blue-500 font-semibold"} style={{ fontSize: "0.875rem" }}>
                 {trend}
               </span>
             </div>
           )}
         </div>
-        <div className="p-3 bg-accent/10 rounded-lg">{getIcon()}</div>
+        <div className="p-4 bg-gradient-to-br from-accent/20 to-accent/10 rounded-xl group-hover:from-accent/30 group-hover:to-accent/20 transition-all shadow-sm">
+          <div className="group-hover:scale-110 transition-transform duration-300">
+            {getIcon()}
+          </div>
+        </div>
       </div>
     </Card>
   )

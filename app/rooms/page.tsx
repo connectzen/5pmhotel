@@ -55,6 +55,18 @@ export default function RoomsPage() {
     if (!rooms.length) return 0
     return rooms.reduce((m, r) => Math.min(m, r.price || 0), rooms[0]?.price || 0)
   }, [rooms])
+  
+  // Get unique room types dynamically from rooms in database
+  const availableRoomTypes = useMemo(() => {
+    const types = new Set<string>()
+    rooms.forEach((room) => {
+      if (room.type && room.type.trim()) {
+        types.add(room.type.trim())
+      }
+    })
+    return Array.from(types).sort()
+  }, [rooms])
+  
   const filteredRooms = rooms.filter((room) => {
     const typeMatch = selectedType === "all" || room.type === selectedType
     const priceMatch = room.price <= priceRange
@@ -88,11 +100,11 @@ export default function RoomsPage() {
                     className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
                   >
                     <option value="all">All Types</option>
-                    <option value="single">Single</option>
-                    <option value="twin">Twin</option>
-                    <option value="convertible">Convertible</option>
-                    <option value="triple">Triple</option>
-                    <option value="camping">Camping</option>
+                    {availableRoomTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
