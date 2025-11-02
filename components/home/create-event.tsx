@@ -137,6 +137,12 @@ export function CreateEvent() {
     
     setIsSubmitting(true)
     
+    if (!eventDate || !isValid(eventDate)) {
+      setErrors(prev => ({ ...prev, date: true }))
+      setIsSubmitting(false)
+      return
+    }
+    
     const pending: ClientEvent = {
       id: `CEV-${Date.now()}`,
       name: eventName,

@@ -6,7 +6,7 @@ import { KPICard } from "@/components/admin/kpi-card"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import Link from "next/link"
-import { Plus, Users, DollarSign, Calendar, AlertCircle } from "lucide-react"
+import { Plus, Users, DollarSign, Calendar, AlertCircle, Bed } from "lucide-react"
 import { OccupancyReportChart } from "@/components/admin/occupancy-report-chart";
 import { RoomDistributionChart } from "@/components/admin/room-distribution-chart";
 import { RevenueReportChart } from "@/components/admin/revenue-report-chart";
@@ -182,19 +182,21 @@ export default function DashboardPage() {
 
       {/* Quick Links */}
       <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-        <Link href="/admin/bookings">
+        <Link href="/admin/rooms">
           <Card className="p-6 hover:shadow-xl transition-all duration-300 cursor-pointer border-l-4 border-l-primary bg-gradient-to-br from-card to-card/95 group">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <h3 className="font-semibold text-foreground mb-2 text-lg group-hover:text-primary transition-colors">View All Bookings</h3>
-                <p className="text-sm text-muted-foreground mb-4">Manage all room and venue bookings</p>
+                <h3 className="font-semibold text-foreground mb-2 text-lg group-hover:text-primary transition-colors">Available Rooms</h3>
+                <p className="text-sm text-muted-foreground mb-4">Browse and manage all available room accommodations</p>
                 <div className="flex items-baseline gap-2">
-                  <p className="text-3xl font-bold text-foreground group-hover:text-accent transition-colors">{(kpis as any).totalBookings || bookings.length}</p>
-                  <p className="text-sm text-muted-foreground">Total Bookings</p>
+                  <p className="text-3xl font-bold text-foreground group-hover:text-accent transition-colors">
+                    {roomsWithAvailability.reduce((sum: number, r: any) => sum + (r.availableCount || 0), 0)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Rooms Available</p>
                 </div>
               </div>
               <div className="p-4 bg-primary/10 rounded-xl group-hover:bg-primary/20 transition-all">
-                <Calendar className="w-8 h-8 text-primary group-hover:scale-110 transition-transform" />
+                <Bed className="w-8 h-8 text-primary group-hover:scale-110 transition-transform" />
               </div>
             </div>
           </Card>

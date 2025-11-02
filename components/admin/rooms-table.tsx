@@ -23,6 +23,7 @@ export function RoomsTable({ rooms, onEdit, onDelete, busyId }: RoomsTableProps)
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Image</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Room Type</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Capacity</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Quantity</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Price (KES)</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Amenities</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Status</th>
@@ -47,6 +48,7 @@ export function RoomsTable({ rooms, onEdit, onDelete, busyId }: RoomsTableProps)
                 </td>
                 <td className="px-6 py-4 text-sm font-medium text-foreground">{room.name}</td>
                 <td className="px-6 py-4 text-sm text-foreground">{room.capacity} guests</td>
+                <td className="px-6 py-4 text-sm text-foreground font-medium">{room.quantity ?? 0}</td>
                 <td className="px-6 py-4 text-sm font-medium text-foreground">{(room.price ?? 0).toLocaleString()}</td>
                 <td className="px-6 py-4 text-sm">
                   <div className="flex flex-wrap gap-1">
