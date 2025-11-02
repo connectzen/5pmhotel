@@ -4,7 +4,7 @@ import React from "react"
 
 import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Check, ChevronRight, Calendar as CalendarIcon, CheckCircle2, Phone } from "lucide-react"
@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button"
 
 export default function BookingPage() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [step, setStep] = useState(1)
   type RoomLite = { id: string; name: string; price: number; images?: string[]; quantity?: number; availableCount?: number }
   const [rooms, setRooms] = useState<RoomLite[]>([])
@@ -760,25 +761,66 @@ export default function BookingPage() {
                       </div>
 
                       {/* Guest Information */}
-                      <div className="bg-muted p-6 rounded-lg">
+                      <div className="bg-muted p-6 rounded-lg border border-border">
                         <h3 className="font-semibold text-lg text-primary mb-4">Guest Information</h3>
-                        <div className="space-y-3">
-                          <div>
-                            <p className="text-sm text-foreground/70 mb-1">Name</p>
-                            <p className="font-semibold text-foreground">{formData.firstName} {formData.lastName}</p>
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-semibold text-foreground mb-2">First Name</label>
+                              <input
+                                type="text"
+                                name="firstName"
+                                value={formData.firstName}
+                                onChange={handleInputChange}
+                                className="w-full px-4 py-2 bg-white border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-foreground"
+                                readOnly
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-semibold text-foreground mb-2">Last Name</label>
+                              <input
+                                type="text"
+                                name="lastName"
+                                value={formData.lastName}
+                                onChange={handleInputChange}
+                                className="w-full px-4 py-2 bg-white border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-foreground"
+                                readOnly
+                              />
+                            </div>
                           </div>
                           <div>
-                            <p className="text-sm text-foreground/70 mb-1">Email</p>
-                            <p className="font-semibold text-foreground">{formData.email}</p>
+                            <label className="block text-sm font-semibold text-foreground mb-2">Email Address</label>
+                            <input
+                              type="email"
+                              name="email"
+                              value={formData.email}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-2 bg-white border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-foreground"
+                              readOnly
+                            />
                           </div>
                           <div>
-                            <p className="text-sm text-foreground/70 mb-1">Phone</p>
-                            <p className="font-semibold text-foreground">{formData.phone}</p>
+                            <label className="block text-sm font-semibold text-foreground mb-2">Phone Number</label>
+                            <input
+                              type="tel"
+                              name="phone"
+                              value={formData.phone}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-2 bg-white border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-foreground"
+                              readOnly
+                            />
                           </div>
                           {formData.specialRequests && (
                             <div>
-                              <p className="text-sm text-foreground/70 mb-1">Special Requests</p>
-                              <p className="font-semibold text-foreground">{formData.specialRequests}</p>
+                              <label className="block text-sm font-semibold text-foreground mb-2">Special Requests</label>
+                              <textarea
+                                name="specialRequests"
+                                value={formData.specialRequests}
+                                onChange={handleInputChange}
+                                rows={3}
+                                className="w-full px-4 py-2 bg-white border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-foreground resize-none"
+                                readOnly
+                              />
                             </div>
                           )}
                         </div>
@@ -897,7 +939,13 @@ export default function BookingPage() {
       <Footer />
 
       {/* Success Confirmation Modal */}
-      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+      <Dialog open={showSuccessModal} onOpenChange={(open) => {
+        setShowSuccessModal(open)
+        // When modal is closed, redirect to home page
+        if (!open) {
+          router.push("/")
+        }
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <div className="flex flex-col items-center text-center space-y-4 py-4">
@@ -905,11 +953,11 @@ export default function BookingPage() {
                 <CheckCircle2 className="w-12 h-12 text-green-600 dark:text-green-400" />
               </div>
               <DialogTitle className="text-2xl font-serif text-primary">
-                Booking Request Submitted!
+                Submission Has Been Submitted!
               </DialogTitle>
               <DialogDescription className="text-base space-y-3 pt-2">
                 <span className="block text-foreground mb-2">
-                  Thank you for your interest. Your booking request has been successfully submitted.
+                  Thank you for your interest. Your submission has been submitted successfully.
                 </span>
                 <span className="block text-foreground/80">
                   Our team will contact you within a few minutes. If you need immediate assistance, please call us directly.
@@ -931,15 +979,18 @@ export default function BookingPage() {
             
             <div className="flex gap-3">
               <Button
-                onClick={() => setShowSuccessModal(false)}
-                className="flex-1 bg-primary text-primary-foreground hover:opacity-90"
+                onClick={() => {
+                  setShowSuccessModal(false)
+                  router.push("/")
+                }}
+                className="flex-1 bg-primary text-primary-foreground hover:opacity-90 hover:scale-105 transition-all duration-200"
               >
                 Close
               </Button>
               <Button
                 asChild
                 variant="outline"
-                className="flex-1"
+                className="flex-1 hover:scale-105 transition-all duration-200"
               >
                 <a href={`tel:${CONTACT_PHONE.replace(/\s|-/g, '')}`}>
                   <Phone className="w-4 h-4 mr-2" />
