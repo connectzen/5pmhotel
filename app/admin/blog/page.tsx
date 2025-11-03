@@ -27,6 +27,10 @@ export default function AdminBlogsPage() {
   const [content, setContent] = useState("")
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [imageFiles, setImageFiles] = useState<FileList | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [draftId, setDraftId] = useState<string | null>(null)
+  const [uploadedCoverUrl, setUploadedCoverUrl] = useState<string | null>(null)
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([])
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "blogs"), (snap) => {
@@ -38,6 +42,47 @@ export default function AdminBlogsPage() {
     return () => unsub()
   }, [])
 
+  async function ensureDraftId(): Promise<string> {
+    if (draftId) return draftId
+    const docRef = doc(collection(db, "blogs"))
+    setDraftId(docRef.id)
+    return docRef.id
+  }
+
+  async function handleUploadSelected() {
+    if (!coverFile && (!imageFiles || imageFiles.length === 0)) {
+      toast("Select a cover or images to upload first")
+      return
+    }
+    setUploading(true)
+    try {
+      const blogId = await ensureDraftId()
+      // Upload cover
+      if (coverFile && !uploadedCoverUrl) {
+        const r = ref(storage, `blogs/${blogId}/cover-${Date.now()}-${coverFile.name}`)
+        await uploadBytes(r, coverFile)
+        const url = await getDownloadURL(r)
+        setUploadedCoverUrl(url)
+      }
+      // Upload additional images
+      const newUrls: string[] = []
+      if (imageFiles && imageFiles.length) {
+        for (const f of Array.from(imageFiles)) {
+          const r = ref(storage, `blogs/${blogId}/images/${Date.now()}-${f.name}`)
+          await uploadBytes(r, f)
+          const url = await getDownloadURL(r)
+          newUrls.push(url)
+        }
+      }
+      if (newUrls.length) setUploadedImageUrls((prev) => [...prev, ...newUrls])
+      toast.success("Files uploaded. You can copy URLs below and paste into content.")
+    } catch (e) {
+      toast.error("Upload failed")
+    } finally {
+      setUploading(false)
+    }
+  }
+
   async function handleCreate() {
     if (!title.trim()) {
       toast.error("Title is required")
@@ -45,33 +90,32 @@ export default function AdminBlogsPage() {
     }
     setSaving(true)
     try {
-      // Create a doc id first to scope uploads
-      const docRef = doc(collection(db, "blogs"))
-      const blogId = docRef.id
-
-      let coverUrl: string | undefined
-      if (coverFile) {
+      // Ensure uploads exist or perform upload on create
+      const blogId = await ensureDraftId()
+      let coverUrl = uploadedCoverUrl || null
+      if (!coverUrl && coverFile) {
         const r = ref(storage, `blogs/${blogId}/cover-${Date.now()}-${coverFile.name}`)
         await uploadBytes(r, coverFile)
         coverUrl = await getDownloadURL(r)
       }
-
-      const uploadedUrls: string[] = []
-      if (imageFiles && imageFiles.length) {
+      let imageUrls = uploadedImageUrls
+      if ((!imageUrls || imageUrls.length === 0) && imageFiles && imageFiles.length) {
+        const newUrls: string[] = []
         for (const f of Array.from(imageFiles)) {
           const r = ref(storage, `blogs/${blogId}/images/${Date.now()}-${f.name}`)
           await uploadBytes(r, f)
           const url = await getDownloadURL(r)
-          uploadedUrls.push(url)
+          newUrls.push(url)
         }
+        imageUrls = newUrls
       }
 
-      await setDoc(docRef, {
+      await setDoc(doc(db, "blogs", blogId), {
         title: title.trim(),
         excerpt: excerpt.trim() || null,
         content: content.trim(),
         coverUrl: coverUrl || null,
-        images: uploadedUrls,
+        images: imageUrls || [],
         createdAt: serverTimestamp(),
       })
 
@@ -80,6 +124,9 @@ export default function AdminBlogsPage() {
       setContent("")
       setCoverFile(null)
       setImageFiles(null)
+      setUploadedCoverUrl(null)
+      setUploadedImageUrls([])
+      setDraftId(null)
       setOpen(false)
       toast.success("Blog created")
     } catch (e) {
@@ -111,8 +158,8 @@ export default function AdminBlogsPage() {
       </div>
 
       {open && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-          <Card className="w-full max-w-2xl p-6 space-y-4 bg-background">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center overflow-y-auto">
+          <Card className="w-full max-w-2xl p-6 space-y-4 bg-background max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">Create Blog</h2>
               <button onClick={() => setOpen(false)} className="text-sm opacity-70 hover:opacity-100">Close</button>
@@ -139,6 +186,37 @@ export default function AdminBlogsPage() {
                 <label className="text-sm">Additional images (optional, multiple)</label>
                 <input type="file" accept="image/*" multiple onChange={(e) => setImageFiles(e.target.files)} />
               </div>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="outline" onClick={handleUploadSelected} disabled={uploading}>
+                  {uploading ? "Uploading..." : "Upload files (get URLs)"}
+                </Button>
+              </div>
+              {(uploadedCoverUrl || uploadedImageUrls.length > 0) && (
+                <div className="space-y-2 border rounded p-3">
+                  <p className="text-sm font-medium">Uploaded URLs (click to copy)</p>
+                  {uploadedCoverUrl && (
+                    <button
+                      type="button"
+                      onClick={() => { navigator.clipboard.writeText(uploadedCoverUrl!); toast.success("Cover URL copied") }}
+                      className="block w-full text-left text-xs underline truncate"
+                      title={uploadedCoverUrl}
+                    >
+                      {uploadedCoverUrl}
+                    </button>
+                  )}
+                  {uploadedImageUrls.map((u, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => { navigator.clipboard.writeText(u); toast.success("Image URL copied") }}
+                      className="block w-full text-left text-xs underline truncate"
+                      title={u}
+                    >
+                      {u}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="flex items-center justify-end gap-2 pt-2">
                 <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
                 <Button onClick={handleCreate} disabled={saving}>{saving ? "Saving..." : "Create"}</Button>
