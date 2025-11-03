@@ -380,15 +380,15 @@ export default function DashboardPage() {
 
   return (
     <div className="h-full flex flex-col min-w-0">
-      <div className="p-6 space-y-8 bg-background flex-1 overflow-y-auto">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 md:space-y-8 bg-background flex-1 overflow-y-auto">
       {userInfo && (
         <NotificationsOptIn userId={userInfo.uid} role={userInfo.role} />
       )}
       {/* Header */}
-      <div className="flex items-center justify-between pb-6 border-b border-border/50">
+      <div className="flex items-center justify-between pb-4 sm:pb-6 border-b border-border/50">
         <div>
-          <h1 className="text-4xl font-bold text-foreground mb-2 font-serif">Dashboard</h1>
-          <p className="text-muted-foreground text-lg">Welcome back to 5PM Hotel Admin</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2 font-serif">Dashboard</h1>
+          <p className="text-muted-foreground text-sm sm:text-base md:text-lg">Welcome back to 5PM Hotel Admin</p>
         </div>
       </div>
 
@@ -400,10 +400,10 @@ export default function DashboardPage() {
               <div className="flex-1">
                 <h3 className="font-semibold text-foreground mb-4 text-lg group-hover:text-primary transition-colors">Available Rooms</h3>
                 <div className="flex items-baseline gap-2">
-                  <p className="text-3xl font-bold text-foreground group-hover:text-accent transition-colors animate-pulse-tick">
+                  <p className="text-2xl sm:text-3xl font-bold text-foreground group-hover:text-accent transition-colors animate-pulse-tick">
                     {roomsWithAvailability.reduce((sum: number, r: any) => sum + (r.availableCount || 0), 0)}
                   </p>
-                  <p className="text-sm text-muted-foreground">Rooms Available</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Rooms Available</p>
                 </div>
               </div>
               <div className="p-4 bg-primary/10 rounded-xl group-hover:bg-primary/20 transition-all">
@@ -415,7 +415,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Pending Cards - Second Priority */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         <Link href="/admin/bookings?filter=pending">
           <Card className="p-6 hover:shadow-xl transition-all duration-300 cursor-pointer relative border-l-4 border-l-red-500/50 bg-gradient-to-br from-card to-card/95 group overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -429,7 +429,7 @@ export default function DashboardPage() {
                     </span>
                   )}
                 </div>
-                <p className="text-4xl font-bold text-foreground group-hover:text-red-500 transition-colors">{(kpis as any).pendingBookings || 0}</p>
+                <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground group-hover:text-red-500 transition-colors">{(kpis as any).pendingBookings || 0}</p>
                 <p className="text-sm text-muted-foreground mt-2">Requires attention</p>
               </div>
               <div className="p-4 bg-accent/10 rounded-xl relative group-hover:bg-accent/20 transition-all shadow-sm">
@@ -454,7 +454,7 @@ export default function DashboardPage() {
                     </span>
                   )}
                 </div>
-                <p className="text-4xl font-bold text-foreground group-hover:text-orange-500 transition-colors">{(kpis as any).pendingEvents || 0}</p>
+                <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground group-hover:text-orange-500 transition-colors">{(kpis as any).pendingEvents || 0}</p>
                 <p className="text-sm text-muted-foreground mt-2">Requires attention</p>
               </div>
               <div className="p-4 bg-accent/10 rounded-xl relative group-hover:bg-accent/20 transition-all shadow-sm">
@@ -469,7 +469,7 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <KPICard title="Today's Check-ins" value={kpis.todayCheckIns} icon="CheckIn" trend="" />
         <KPICard title="Today's Check-outs" value={kpis.todayCheckOuts} icon="CheckOut" trend="" />
         <KPICard title="Today's Revenue" value={`KSh ${(kpis as any).todayRevenue?.toLocaleString() || 0}`} icon="Revenue" trend="" />
@@ -480,25 +480,25 @@ export default function DashboardPage() {
       <div className="pt-8 space-y-6">
         <h2 className="text-2xl font-bold text-foreground font-serif mb-4">Performance Overview</h2>
         {/* Summary Stats (live) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <Card className="p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-l-blue-500/50 bg-gradient-to-br from-card to-card/95 group">
             <p className="text-sm text-muted-foreground mb-2 font-medium">Average Occupancy</p>
-            <p className="text-3xl font-bold text-foreground group-hover:text-blue-500 transition-colors">{kpis.occupancyRate}%</p>
+            <p className="text-2xl sm:text-3xl font-bold text-foreground group-hover:text-blue-500 transition-colors">{kpis.occupancyRate}%</p>
             <p className="text-xs text-muted-foreground mt-2">Room utilization rate</p>
           </Card>
           <Card className="p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-l-accent/50 bg-gradient-to-br from-card to-card/95 group">
             <p className="text-sm text-muted-foreground mb-2 font-medium">Total Revenue</p>
-            <p className="text-3xl font-bold text-accent group-hover:scale-105 transition-transform inline-block">KSh {kpis.revenueThisMonth.toLocaleString()}</p>
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-accent group-hover:scale-105 transition-transform inline-block">KSh {kpis.revenueThisMonth.toLocaleString()}</p>
             <p className="text-xs text-muted-foreground mt-2">All-time revenue</p>
           </Card>
           <Card className="p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-l-primary/50 bg-gradient-to-br from-card to-card/95 group">
             <p className="text-sm text-muted-foreground mb-2 font-medium">Total Bookings</p>
-            <p className="text-3xl font-bold text-foreground group-hover:text-green-500 transition-colors">{bookings.length}</p>
+            <p className="text-2xl sm:text-3xl font-bold text-foreground group-hover:text-green-500 transition-colors">{bookings.length}</p>
             <p className="text-xs text-muted-foreground mt-2">All bookings</p>
           </Card>
         </div>
         {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <Card className="p-6 hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-card to-card/95">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-border/50">
               <h2 className="text-xl font-semibold text-foreground font-serif">Occupancy Trend</h2>

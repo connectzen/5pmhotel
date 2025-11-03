@@ -8,6 +8,12 @@ export const metadata: Metadata = {
   title: "5PM Hotel - Modern Accommodation & Events",
   description: "Experience comfort and hospitality at 5PM Hotel. Book your stay or host your event.",
   generator: "v0.app",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+  },
 }
 
 export default function RootLayout({

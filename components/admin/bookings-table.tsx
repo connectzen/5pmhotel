@@ -204,8 +204,8 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
 
   return (
     <Card>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[1200px]">
+      <div className="overflow-x-auto -mx-3 sm:mx-0">
+        <table className="w-full min-w-[800px] sm:min-w-[1000px] md:min-w-[1200px]">
           <thead className="bg-muted border-b border-border">
             <tr>
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[180px]">Customer Email</th>

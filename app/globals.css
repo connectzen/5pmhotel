@@ -187,12 +187,18 @@
   /* Admin layout - prevent body scrolling when in admin pages */
   body.admin-layout-active {
     overflow-y: hidden !important;
+    overflow-x: hidden !important;
     height: 100vh !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
   }
   
   html.admin-layout-active {
     overflow-y: hidden !important;
+    overflow-x: hidden !important;
     height: 100% !important;
+    width: 100% !important;
+    max-width: 100vw !important;
   }
   
   /* Show horizontal scrollbars for table containers and overflow elements */
