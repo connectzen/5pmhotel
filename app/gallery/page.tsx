@@ -1,5 +1,40 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import { collection, onSnapshot } from "firebase/firestore"
+import { db } from "@/lib/firebase"
+import { Card } from "@/components/ui/card"
+
+type GalleryItem = { id: string; url: string; title?: string }
+
+export default function PublicGalleryPage() {
+  const [items, setItems] = useState<GalleryItem[]>([])
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "gallery"), (snap) => {
+      const list = snap.docs
+        .map((d) => ({ id: d.id, ...(d.data() as any) }))
+        .sort((a: any, b: any) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
+      setItems(list as any)
+    })
+    return () => unsub()
+  }, [])
+
+  return (
+    <div className="p-6 space-y-6">
+      <h1 className="text-3xl font-bold">Gallery</h1>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {items.map((it) => (
+          <Card key={it.id} className="overflow-hidden group">
+            <img src={it.url} alt={it.title || "Gallery image"} className="w-full h-48 object-cover transition-transform group-hover:scale-105" />
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+"use client"
+
 import { useState } from "react"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"

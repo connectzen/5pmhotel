@@ -36,6 +36,10 @@ export function Navbar() {
               Venues & Events
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full"></span>
             </Link>
+            <Link href="/gallery" className="text-foreground hover:text-accent transition-colors font-medium relative group">
+              Gallery
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full"></span>
+            </Link>
             <Link href="/about" className="text-foreground hover:text-accent transition-colors font-medium relative group">
               About
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full"></span>
@@ -102,6 +106,9 @@ export function Navbar() {
             </Link>
             <Link href="/venues" className="block py-2 text-foreground hover:text-accent transition-colors font-medium rounded-lg hover:bg-muted/50 px-2">
               Venues & Events
+            </Link>
+            <Link href="/gallery" className="block py-2 text-foreground hover:text-accent transition-colors font-medium rounded-lg hover:bg-muted/50 px-2">
+              Gallery
             </Link>
             <Link href="/about" className="block py-2 text-foreground hover:text-accent transition-colors font-medium rounded-lg hover:bg-muted/50 px-2">
               About

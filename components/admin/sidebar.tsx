@@ -28,6 +28,7 @@ const menuItems = [
   { href: "/admin/events", label: "Events", icon: Calendar, showBadge: true, badgeKey: "events" },
   { href: "/admin/payments", label: "Payments", icon: CreditCard, showBadge: false },
   { href: "/admin/reports", label: "Reports", icon: BarChart3, showBadge: false },
+  { href: "/admin/gallery", label: "Gallery", icon: FileText, showBadge: false },
   { href: "/admin/settings", label: "Settings", icon: Settings, showBadge: false },
 ]
 
