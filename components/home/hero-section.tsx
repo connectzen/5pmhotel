@@ -16,10 +16,17 @@ export function HeroSection() {
       <div className="max-w-6xl mx-auto px-4">
         <div className="rounded-2xl border border-border bg-card shadow-xl overflow-hidden mx-auto">
           <div className="relative w-full">
+            {/* Desktop Image */}
             <img
               src="/helloImage/Screenshot%202025-10-30%20112005.png"
               alt="Hotel showcase"
-              className="w-full h-[420px] md:h-[560px] object-cover object-[40%_35%] block brightness-95 contrast-110"
+              className="hidden md:block w-full h-[420px] md:h-[560px] object-cover object-[40%_35%] brightness-95 contrast-110"
+            />
+            {/* Mobile Image */}
+            <img
+              src="/helloImagemobileview/Screenshot%202025-11-03%20181236.png"
+              alt="Hotel showcase"
+              className="md:hidden w-full h-[420px] object-cover object-center brightness-95 contrast-110"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/25 to-transparent" />
             {/* Text overlay */}

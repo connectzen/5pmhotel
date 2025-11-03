@@ -21,6 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { CreateEventModal } from "@/components/admin/create-event-modal"
+import { EventsTable } from "@/components/admin/events-table"
 
 interface ClientEvent {
   id: string // This can be either the Firestore document ID or the event's own ID field
@@ -553,14 +554,14 @@ export default function EventsPage() {
 
   return (
     <div className="h-full flex flex-col min-w-0">
-      <div className="p-6 space-y-6 flex-1 overflow-y-auto">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 flex-1 overflow-y-auto">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="text-3xl font-serif font-bold text-foreground">Events</h1>
-          <p className="text-muted-foreground mt-1">Approve client event requests and manage booked events</p>
+          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground">Events</h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">Approve client event requests and manage booked events</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button
             onClick={() => setCreateEventModalOpen(true)}
             className="gap-2 hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
@@ -606,329 +607,58 @@ export default function EventsPage() {
 
       {/* All Events */}
       {viewType === "all" && (
-        <div className="space-y-4">
-          {allEvents.length === 0 && (
-            <Card className="p-6 text-muted-foreground">No events found.</Card>
-          )}
-          {allEvents.map((ev) => {
-            const status = ev.status || "pending"
-            const isPending = status === "pending"
-            const isApproved = status === "approved"
-            const isRejected = status === "rejected"
-            
-            return (
-              <Card key={ev.firestoreId || ev.id} className="p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-semibold text-foreground">{ev.name}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{ev.venueName}</p>
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-3 text-sm">
-                      <span><strong>Date:</strong> {ev.date}</span>
-                      <span><strong>Guests:</strong> {ev.guests}</span>
-                      <span><strong>Client:</strong> {ev.customerName} ({ev.customerEmail})</span>
-                      {ev.customerPhone && (
-                        <span className="flex items-center gap-1">
-                          <strong>Phone:</strong>
-                          <a 
-                            href={`tel:${ev.customerPhone.replace(/\s|-/g, '')}`}
-                            className="flex items-center gap-1 text-accent hover:text-accent/80 hover:underline font-medium"
-                          >
-                            <Phone className="w-3 h-3" />
-                            {ev.customerPhone}
-                          </a>
-                        </span>
-                      )}
-                    </div>
-                    {ev.note && <p className="text-sm mt-2">Note: {ev.note}</p>}
-                  </div>
-                  <div className="flex flex-col sm:items-end gap-3 w-full sm:w-auto">
-                    <div className="flex items-center gap-2 flex-wrap sm:justify-end">
-                      <Badge className={`capitalize ${getBookingStatusColor(status)}`}>{status}</Badge>
-                      {ev.eventType && (
-                        <Badge variant="outline" className="text-xs">
-                          {ev.eventType}
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
-                      {isPending && (
-                        <>
-                          <Button 
-                            onClick={() => openApprovalModal(ev)} 
-                            size="sm"
-                            disabled={processingIds.has(ev.id)}
-                            className="min-w-[80px] hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
-                          >
-                            Approve
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            onClick={() => rejectEvent(ev)} 
-                            size="sm"
-                            disabled={processingIds.has(ev.id)}
-                            className="min-w-[80px] hover:scale-105 transition-transform duration-200"
-                          >
-                            {processingIds.has(ev.id) ? "Processing..." : "Reject"}
-                          </Button>
-                        </>
-                      )}
-                      {isApproved && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => unapproveEvent(ev)}
-                          disabled={processingIds.has(ev.id)}
-                          className="gap-1 text-blue-600 hover:text-blue-700 min-w-[90px] hover:scale-105 transition-transform duration-200"
-                        >
-                          <RotateCcw className="w-4 h-4" />
-                          Unapprove
-                        </Button>
-                      )}
-                      {isRejected && (
-                        <Button 
-                          variant="outline" 
-                          onClick={() => approveRejectedEvent(ev)} 
-                          size="sm"
-                          disabled={processingIds.has(ev.id)}
-                          className="min-w-[80px] hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
-                        >
-                          {processingIds.has(ev.id) ? "Processing..." : "Approve"}
-                        </Button>
-                      )}
-                      <Button 
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditModal(ev)}
-                        disabled={processingIds.has(ev.id)}
-                        className="gap-1 text-blue-600 hover:text-blue-700 min-w-[70px] hover:scale-105 transition-transform duration-200"
-                      >
-                        <Edit className="w-4 h-4" />
-                        Edit
-                      </Button>
-                      {isRejected && (
-                        <Button 
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteEvent(ev)}
-                          disabled={processingIds.has(ev.id)}
-                          className="gap-1 text-red-600 hover:text-red-700 min-w-[70px] hover:scale-105 transition-transform duration-200"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Delete
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            )
-          })}
-        </div>
+        <EventsTable
+          events={allEvents}
+          onApprove={openApprovalModal}
+          onReject={rejectEvent}
+          onUnapprove={unapproveEvent}
+          onEdit={openEditModal}
+          onDelete={deleteEvent}
+          onApproveRejected={approveRejectedEvent}
+          processingIds={processingIds}
+        />
       )}
 
       {/* Created Events (pending) */}
       {viewType === "created" && (
-        <div className="space-y-4">
-          {createdEvents.length === 0 && (
-            <Card className="p-6 text-muted-foreground">No client-created events yet.</Card>
-          )}
-          {createdEvents.map((ev) => (
-            <Card key={ev.firestoreId || ev.id} className="p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-semibold text-foreground">{ev.name}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">{ev.venueName}</p>
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-3 text-sm">
-                    <span><strong>Date:</strong> {ev.date}</span>
-                    <span><strong>Guests:</strong> {ev.guests}</span>
-                    <span><strong>Client:</strong> {ev.customerName} ({ev.customerEmail})</span>
-                    {ev.customerPhone && (
-                      <span className="flex items-center gap-1">
-                        <strong>Phone:</strong>
-                        <a 
-                          href={`tel:${ev.customerPhone.replace(/\s|-/g, '')}`}
-                          className="flex items-center gap-1 text-accent hover:text-accent/80 hover:underline font-medium"
-                        >
-                          <Phone className="w-3 h-3" />
-                          {ev.customerPhone}
-                        </a>
-                      </span>
-                    )}
-                  </div>
-                  {ev.note && <p className="text-sm mt-2">Note: {ev.note}</p>}
-                </div>
-                  <div className="flex flex-col sm:items-end gap-3 w-full sm:w-auto">
-                    <div className="flex items-center gap-2 flex-wrap sm:justify-end">
-                      <Badge className={`capitalize ${getBookingStatusColor("pending")}`}>pending</Badge>
-                      {ev.eventType && (
-                        <Badge variant="outline" className="text-xs">
-                          {ev.eventType}
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
-                    <Button 
-                      onClick={() => openApprovalModal(ev)} 
-                      size="sm"
-                      disabled={processingIds.has(ev.id)}
-                      className="min-w-[80px] hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
-                    >
-                      Approve
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => rejectEvent(ev)} 
-                      size="sm"
-                      disabled={processingIds.has(ev.id)}
-                      className="min-w-[80px] hover:scale-105 transition-transform duration-200"
-                    >
-                      {processingIds.has(ev.id) ? "Processing..." : "Reject"}
-                    </Button>
-                    <Button 
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openEditModal(ev)}
-                      disabled={processingIds.has(ev.id)}
-                      className="gap-1 text-blue-600 hover:text-blue-700 min-w-[70px] hover:scale-105 transition-transform duration-200"
-                    >
-                      <Edit className="w-4 h-4" />
-                      Edit
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
+        <EventsTable
+          events={createdEvents}
+          onApprove={openApprovalModal}
+          onReject={rejectEvent}
+          onUnapprove={unapproveEvent}
+          onEdit={openEditModal}
+          onDelete={deleteEvent}
+          onApproveRejected={approveRejectedEvent}
+          processingIds={processingIds}
+        />
       )}
 
-      {/* Booked Events - Cards */}
+      {/* Booked Events */}
       {viewType === "booked" && (
-        <div className="space-y-4">
-          {bookedEvents.length === 0 && (
-            <Card className="p-6 text-muted-foreground">No booked events yet.</Card>
-          )}
-          {bookedEvents.map((be) => (
-            <Card key={be.firestoreId || be.id} className="p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-semibold text-foreground">{be.name || "-"}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">{be.venueName || "-"}</p>
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-3 text-sm">
-                    <span className="font-mono text-xs"><strong>ID:</strong> {be.id || "-"}</span>
-                    <span><strong>Date:</strong> {be.date || "-"}</span>
-                    <span><strong>Guests:</strong> {be.guests || "-"}</span>
-                    <span><strong>Client:</strong> {be.customerName || "-"} {be.customerEmail ? `(${be.customerEmail})` : ""}</span>
-                    {be.customerPhone && (
-                      <span className="flex items-center gap-1">
-                        <strong>Phone:</strong>
-                        <a 
-                          href={`tel:${be.customerPhone.replace(/\s|-/g, '')}`}
-                          className="flex items-center gap-1 text-accent hover:text-accent/80 hover:underline font-medium"
-                        >
-                          <Phone className="w-3 h-3" />
-                          {be.customerPhone}
-                        </a>
-                      </span>
-                    )}
-                  </div>
-                  {be.note && <p className="text-sm mt-2">Note: {be.note}</p>}
-                </div>
-                <div className="flex flex-col sm:items-end gap-3 w-full sm:w-auto">
-                  <div className="flex items-center gap-2 flex-wrap sm:justify-end">
-                    <Badge className={`capitalize ${getBookingStatusColor(be.status)}`}>{be.status}</Badge>
-                    {be.eventType && (
-                      <Badge variant="outline" className="text-xs">
-                        {be.eventType}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => unapproveEvent(be)}
-                      disabled={processingIds.has(be.id)}
-                      className="gap-1 text-blue-600 hover:text-blue-700 min-w-[90px] hover:scale-105 transition-transform duration-200"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                      Unapprove
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
+        <EventsTable
+          events={bookedEvents}
+          onApprove={openApprovalModal}
+          onReject={rejectEvent}
+          onUnapprove={unapproveEvent}
+          onEdit={openEditModal}
+          onDelete={deleteEvent}
+          onApproveRejected={approveRejectedEvent}
+          processingIds={processingIds}
+        />
       )}
 
       {/* Rejected Events View */}
       {viewType === "rejected" && (
-        <div className="space-y-4">
-          {rejectedEvents.length === 0 && (
-            <Card className="p-6 text-muted-foreground">No rejected events.</Card>
-          )}
-          {rejectedEvents.map((ev) => (
-            <Card key={ev.firestoreId || ev.id} className="p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-semibold text-foreground">{ev.name}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">{ev.venueName}</p>
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-3 text-sm">
-                    <span><strong>Date:</strong> {ev.date}</span>
-                    <span><strong>Guests:</strong> {ev.guests}</span>
-                    <span><strong>Client:</strong> {ev.customerName} ({ev.customerEmail})</span>
-                    {ev.customerPhone && (
-                      <span className="flex items-center gap-1">
-                        <strong>Phone:</strong>
-                        <a 
-                          href={`tel:${ev.customerPhone.replace(/\s|-/g, '')}`}
-                          className="flex items-center gap-1 text-accent hover:text-accent/80 hover:underline font-medium"
-                        >
-                          <Phone className="w-3 h-3" />
-                          {ev.customerPhone}
-                        </a>
-                      </span>
-                    )}
-                  </div>
-                  {ev.note && <p className="text-sm mt-2">Note: {ev.note}</p>}
-                </div>
-                <div className="flex flex-col sm:items-end gap-3 w-full sm:w-auto">
-                  <div className="flex items-center gap-2 flex-wrap sm:justify-end">
-                    <Badge className={`capitalize ${getBookingStatusColor("cancelled")}`}>rejected</Badge>
-                    {ev.eventType && (
-                      <Badge variant="outline" className="text-xs">
-                        {ev.eventType}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => approveRejectedEvent(ev)}
-                      disabled={processingIds.has(ev.id)}
-                      className="gap-1 text-green-600 hover:text-green-700 min-w-[90px] hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
-                    >
-                      <CheckCircle2 className="w-4 h-4" />
-                      Approve
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteEvent(ev)}
-                      disabled={processingIds.has(ev.id)}
-                      className="gap-1 text-red-600 hover:text-red-700 min-w-[70px] hover:scale-105 transition-transform duration-200"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
+        <EventsTable
+          events={rejectedEvents}
+          onApprove={openApprovalModal}
+          onReject={rejectEvent}
+          onUnapprove={unapproveEvent}
+          onEdit={openEditModal}
+          onDelete={deleteEvent}
+          onApproveRejected={approveRejectedEvent}
+          processingIds={processingIds}
+        />
       )}
 
       {/* Edit Modal */}
