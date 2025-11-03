@@ -6,7 +6,7 @@ import { getFirestore, collection, getDocs, query, where } from "firebase/firest
 import { firebaseApp } from "@/lib/firebase"
 
 export async function POST(request: Request) {
-  const messaging = getAdminMessaging()
+  const messaging = await getAdminMessaging()
   if (!messaging) {
     return NextResponse.json({ error: "firebase admin not configured" }, { status: 500 })
   }
