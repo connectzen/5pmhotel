@@ -13,6 +13,8 @@ import { RevenueReportChart } from "@/components/admin/revenue-report-chart";
 import { collection, onSnapshot } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { parseISO, isValid, isToday, startOfDay } from "date-fns"
+import NotificationsOptIn from "@/components/admin/notifications-optin"
+import { onAuthUser, getUserRole } from "@/lib/auth"
 
 export default function DashboardPage() {
   const [bookings, setBookings] = useState<any[]>([])
@@ -21,8 +23,19 @@ export default function DashboardPage() {
   const [events, setEvents] = useState<any[]>([])
   const [kpis, setKpis] = useState(mockKPIData)
   const [timeRange, setTimeRange] = useState<"6months" | "year">("6months")
+  const [userInfo, setUserInfo] = useState<{ uid: string; role?: string } | null>(null)
+  const [prevPending, setPrevPending] = useState<{ bookings: number; events: number }>({ bookings: 0, events: 0 })
+  const [prevExpiring, setPrevExpiring] = useState<number>(0)
 
   useEffect(() => {
+    const unsubAuth = onAuthUser(async (u) => {
+      if (!u) {
+        setUserInfo(null)
+        return
+      }
+      const role = await getUserRole(u.uid)
+      setUserInfo({ uid: u.uid, role: role ?? undefined })
+    })
     const unsubBookings = onSnapshot(collection(db, "bookings"), (snap) => {
       setBookings(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })))
     })
@@ -36,6 +49,7 @@ export default function DashboardPage() {
       setEvents(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })))
     })
     return () => {
+      unsubAuth()
       unsubBookings()
       unsubRooms()
       unsubPayments()
@@ -329,11 +343,47 @@ export default function DashboardPage() {
       pendingEvents: pendingEventsCount,
       totalBookings: bookings.length
     })
+
+    if (pendingBookingsCount > prevPending.bookings) {
+      void fetch("/api/push/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "New pending booking", body: `You have ${pendingBookingsCount} pending bookings`, role: "admin" }),
+      })
+    }
+    if (pendingEventsCount > prevPending.events) {
+      void fetch("/api/push/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "New pending event", body: `You have ${pendingEventsCount} pending events`, role: "admin" }),
+      })
+    }
+    setPrevPending({ bookings: pendingBookingsCount, events: pendingEventsCount })
+
+    const expiringToday = bookings.filter((b: any) => {
+      if (b.status !== "approved" && b.status !== "checked-in") return false
+      const out = b.checkOut ? parseISO(b.checkOut) : null
+      if (!out || !isValid(out)) return false
+      out.setHours(0,0,0,0)
+      const today = new Date(); today.setHours(0,0,0,0)
+      return out.getTime() === today.getTime()
+    }).length
+    if (expiringToday > prevExpiring) {
+      void fetch("/api/push/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Bookings expiring today", body: `${expiringToday} bookings expire today`, role: "admin" }),
+      })
+    }
+    setPrevExpiring(expiringToday)
   }, [bookings, rooms, roomsWithAvailability, payments, events])
 
   return (
     <div className="h-full flex flex-col min-w-0">
       <div className="p-6 space-y-8 bg-background flex-1 overflow-y-auto">
+      {userInfo && (
+        <NotificationsOptIn userId={userInfo.uid} role={userInfo.role} />
+      )}
       {/* Header */}
       <div className="flex items-center justify-between pb-6 border-b border-border/50">
         <div>
