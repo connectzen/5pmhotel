@@ -158,8 +158,8 @@ export default function AdminBlogsPage() {
       </div>
 
       {open && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center overflow-y-auto">
-          <Card className="w-full max-w-2xl p-6 space-y-4 bg-background max-h-[85vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center overflow-y-auto py-8 overscroll-contain">
+          <Card className="w-full max-w-2xl p-6 space-y-4 bg-background max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">Create Blog</h2>
               <button onClick={() => setOpen(false)} className="text-sm opacity-70 hover:opacity-100">Close</button>
