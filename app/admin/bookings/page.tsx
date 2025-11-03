@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { collection, onSnapshot, doc, setDoc, deleteDoc, addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore"
+import { collection, onSnapshot, doc, setDoc, deleteDoc, addDoc, serverTimestamp, query, where, getDocs, arrayUnion } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { differenceInCalendarDays, parseISO, isValid, format, addDays, isPast, isToday, startOfDay } from "date-fns"
 
@@ -60,6 +60,52 @@ export default function BookingsPage() {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
   const [checkinDialogOpen, setCheckinDialogOpen] = useState(false)
   const [bookingToAction, setBookingToAction] = useState<any | null>(null)
+
+  // Helper: write a status transition/audit entry to Firestore
+  const logStatusHistory = async (
+    bookingId: string,
+    fromStatus: string,
+    toStatus: string,
+    note?: string,
+  ) => {
+    try {
+      await setDoc(
+        doc(db, "bookings", bookingId),
+        {
+          statusHistory: arrayUnion({
+            from: fromStatus,
+            to: toStatus,
+            note: note || null,
+            at: serverTimestamp(),
+          }),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      )
+    } catch (e) {
+      console.warn("Failed to write status history:", e)
+    }
+  }
+
+  // Helper: write a generic edit audit entry
+  const logEditHistory = async (bookingId: string, note?: string) => {
+    try {
+      await setDoc(
+        doc(db, "bookings", bookingId),
+        {
+          statusHistory: arrayUnion({
+            event: "edited",
+            note: note || null,
+            at: serverTimestamp(),
+          }),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      )
+    } catch (e) {
+      console.warn("Failed to write edit history:", e)
+    }
+  }
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "bookings"), (snap) => {
@@ -144,10 +190,11 @@ export default function BookingsPage() {
   const [currentTime, setCurrentTime] = useState(new Date())
 
   useEffect(() => {
-    // Update time every minute for real-time monitoring
+    // Update time every 5 seconds for real-time monitoring of expired bookings
+    // This ensures expired bookings are detected quickly
     const interval = setInterval(() => {
       setCurrentTime(new Date())
-    }, 60000) // Update every minute
+    }, 5000) // Update every 5 seconds for faster detection
 
     return () => clearInterval(interval)
   }, [])
@@ -166,27 +213,42 @@ export default function BookingsPage() {
     // Parse checkout date
     let checkoutDate: Date | null = null
     if (checkoutDateStr) {
-      checkoutDate = new Date(checkoutDateStr)
-      if (isNaN(checkoutDate.getTime())) checkoutDate = null
+      // Parse ISO YYYY-MM-DD as LOCAL date to avoid UTC timezone shifts
+      if (checkoutDateStr.includes('-') && checkoutDateStr.length === 10) {
+        const [y, m, d] = checkoutDateStr.split('-').map((v) => parseInt(v, 10))
+        if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+          checkoutDate = new Date(y, m - 1, d)
+        }
+      } else {
+        checkoutDate = new Date(checkoutDateStr)
+        if (isNaN(checkoutDate.getTime())) checkoutDate = null
+      }
     }
 
-    // If not found, try parsing from dates field
+    // If not found, try parsing from dates field (DD/MM/YYYY format) - this is the main format used
     if (!checkoutDate && booking.dates) {
       const dates = (booking.dates || "").split(" - ")
       if (dates.length >= 2) {
         const checkoutStr = dates[1].trim()
+        // Parse DD/MM/YYYY format (e.g., "03/11/2025")
         const parts = checkoutStr.split("/")
         if (parts.length === 3) {
           const day = parseInt(parts[0], 10)
           const month = parseInt(parts[1], 10)
           const year = parseInt(parts[2], 10)
-          if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+          if (!isNaN(day) && !isNaN(month) && !isNaN(year) && day > 0 && month > 0 && month <= 12 && year > 2000) {
             checkoutDate = new Date(year, month - 1, day)
+            // Validate the date was created correctly
+            if (isNaN(checkoutDate.getTime()) || checkoutDate.getFullYear() !== year) {
+              checkoutDate = null
+            }
           }
         } else {
-          checkoutDate = new Date(checkoutStr)
+          // Try ISO format if DD/MM/YYYY parsing failed
+          checkoutDate = parseISO(checkoutStr)
+          if (!isValid(checkoutDate)) checkoutDate = null
         }
-        if (isNaN(checkoutDate.getTime())) checkoutDate = null
+        if (checkoutDate && isNaN(checkoutDate.getTime())) checkoutDate = null
       }
     }
 
@@ -246,15 +308,34 @@ export default function BookingsPage() {
     }
   }, [expiredCheckedInCount])
 
-  const filteredBookings = useMemo(() => bookings.filter((booking) => {
-    const email = (booking as any).email || ""
-    const matchesSearch =
-      booking.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || booking.status === statusFilter
-    return matchesSearch && matchesStatus
-  }), [bookings, searchTerm, statusFilter])
+  // Sort bookings to put expired checked-in bookings at the top
+  const filteredBookings = useMemo(() => {
+    const filtered = bookings.filter((booking) => {
+      const email = (booking as any).email || ""
+      const matchesSearch =
+        booking.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        booking.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        email.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesStatus = statusFilter === "all" || booking.status === statusFilter
+      return matchesSearch && matchesStatus
+    })
+    
+    // Sort: expired checked-in bookings first, then others
+    return filtered.sort((a, b) => {
+      const aExpired = isBookingCheckoutExpired(a).expired
+      const bExpired = isBookingCheckoutExpired(b).expired
+      
+      if (aExpired && !bExpired) return -1
+      if (!aExpired && bExpired) return 1
+      if (aExpired && bExpired) {
+        // Both expired - sort by how overdue (most overdue first)
+        const aElapsed = isBookingCheckoutExpired(a).elapsed || 0
+        const bElapsed = isBookingCheckoutExpired(b).elapsed || 0
+        return bElapsed - aElapsed
+      }
+      return 0
+    })
+  }, [bookings, searchTerm, statusFilter, currentTime])
 
   const openApprovalModal = (booking: any) => {
     setApprovalBooking(booking)
@@ -417,7 +498,8 @@ export default function BookingsPage() {
         room: selectedRoom.name, // Update room name if different
         paymentMethod: approvalData.paymentMethod,
         checkInTime: approvalData.checkInTime || null,
-        checkOutTime: approvalData.checkOutTime || null,
+        // Default check-out time to 11:00 if check-in time is set but check-out time is not
+        checkOutTime: approvalData.checkOutTime || (approvalData.checkInTime ? "11:00" : null),
         updatedAt: serverTimestamp(),
       }
       
@@ -444,6 +526,8 @@ export default function BookingsPage() {
         updateData,
         { merge: true }
       )
+      // Log status transition
+      await logStatusHistory(approvalBooking.id, approvalBooking.status || "unknown", finalStatus, "approve")
       
       // Check if payment already exists for this booking
       const paymentsQuery = query(
@@ -551,21 +635,74 @@ export default function BookingsPage() {
         { status: newStatus, updatedAt: serverTimestamp() },
         { merge: true }
       )
+      await logStatusHistory(bookingId, existing.status, newStatus, "direct status change")
     } catch (error) {
       console.error("Failed to update booking status:", error)
       alert("Failed to update booking status. Please try again.")
     }
   }
 
-  const handleEditSave = (next: any) => {
+  const handleEditSave = async (next: any) => {
     // Ensure times are saved with the booking
+    // If checkOutTime is empty string or null, use default "11:00"
+    // IMPORTANT: Always ensure checkOutTime is set for checked-in bookings
+    let finalCheckOutTime = (next.checkOutTime && next.checkOutTime.trim()) ? next.checkOutTime.trim() : null
+
+    // If booking is checked-in but has no checkOutTime, default to 11:00
+    if (next.status === "checked-in" && !finalCheckOutTime) {
+      finalCheckOutTime = "11:00"
+    }
+
+    // If the Dates were edited (DD/MM/YYYY - DD/MM/YYYY), also update ISO fields checkIn/checkOut
+    let checkInISO: string | null = null
+    let checkOutISO: string | null = null
+    if (typeof next.dates === 'string' && next.dates.includes(' - ')) {
+      const [checkInStr, checkOutStr] = next.dates.split(' - ').map((s: string) => s.trim())
+
+      const toISO = (dmy: string): string | null => {
+        const parts = dmy.split('/')
+        if (parts.length === 3) {
+          const day = parseInt(parts[0], 10)
+          const month = parseInt(parts[1], 10)
+          const year = parseInt(parts[2], 10)
+          if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+            const local = new Date(year, month - 1, day)
+            return `${local.getFullYear()}-${String(local.getMonth() + 1).padStart(2, '0')}-${String(local.getDate()).padStart(2, '0')}`
+          }
+        }
+        return null
+      }
+
+      checkInISO = toISO(checkInStr)
+      checkOutISO = toISO(checkOutStr)
+    }
+
     const updateData: any = {
       ...next,
       checkInTime: next.checkInTime || null,
-      checkOutTime: next.checkOutTime || null,
+      checkOutTime: finalCheckOutTime || null,
+      // If parsed, set ISO dates too so expiration reads the updated checkout
+      ...(checkInISO ? { checkIn: checkInISO } : {}),
+      ...(checkOutISO ? { checkOut: checkOutISO } : {}),
       updatedAt: serverTimestamp(),
     }
-    setDoc(doc(db, "bookings", next.id), updateData, { merge: true })
+
+    // Debug logging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Edit Save]', {
+        bookingId: next.id,
+        status: next.status,
+        checkOutTime: finalCheckOutTime,
+        checkInISO,
+        checkOutISO,
+        updateData,
+      })
+    }
+
+    // Remove null values to avoid overwriting existing data with null
+    if (!updateData.checkInTime) delete updateData.checkInTime
+    await setDoc(doc(db, "bookings", next.id), updateData, { merge: true })
+    await logEditHistory(next.id, "edit modal save")
   }
 
   const handleCheckout = async (isMistake: boolean) => {
@@ -641,6 +778,7 @@ export default function BookingsPage() {
           },
           { merge: true }
         )
+      await logStatusHistory(bookingToCheckout.id, "checked-in", "checked-out", isMistake ? "checkout (mistake flow)" : "checkout")
         
         // Ensure payment is marked as completed in Firebase
         const paymentsQuery = query(
@@ -687,6 +825,7 @@ export default function BookingsPage() {
         { status: "rejected", updatedAt: serverTimestamp() },
         { merge: true }
       )
+      await logStatusHistory(bookingToAction.id, bookingToAction.status, "rejected", "reject")
       
       // Update or create payment entries
       try {
@@ -744,6 +883,7 @@ export default function BookingsPage() {
         { status: "cancelled", updatedAt: serverTimestamp() },
         { merge: true }
       )
+      await logStatusHistory(bookingToAction.id, bookingToAction.status, "cancelled", "cancel")
       
       // Update or create payment entries
       try {
@@ -840,7 +980,14 @@ export default function BookingsPage() {
       const checkoutStr = format(checkoutDate, 'yyyy-MM-dd')
       const datesStr = `${format(today, 'dd/MM/yyyy')} - ${format(checkoutDate, 'dd/MM/yyyy')}`
       
-      // Update booking with today's check-in date
+      // Get current time for check-in
+      const now = new Date()
+      const checkInTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+      
+      // Get check-out time from existing booking or default to 11:00
+      const existingCheckOutTime = (bookingToAction as any).checkOutTime || (bookingToAction as any).checkoutTime || "11:00"
+      
+      // Update booking with today's check-in date and times
       await setDoc(
         doc(db, "bookings", bookingToAction.id),
         { 
@@ -848,10 +995,13 @@ export default function BookingsPage() {
           checkIn: todayStr,
           checkOut: checkoutStr,
           dates: datesStr,
+          checkInTime: checkInTimeStr,
+          checkOutTime: existingCheckOutTime,
           updatedAt: serverTimestamp() 
         },
         { merge: true }
       )
+      await logStatusHistory(bookingToAction.id, bookingToAction.status, "checked-in", "check-in")
       
       // Ensure payment exists and is completed for this booking
       const paymentsQuery = query(
@@ -926,7 +1076,8 @@ export default function BookingsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 min-w-0">
+    <div className="h-full flex flex-col min-w-0 overflow-hidden">
+      <div className="p-6 space-y-6 flex-1 overflow-y-auto min-h-0">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -942,58 +1093,17 @@ export default function BookingsPage() {
         </Button>
       </div>
 
-      {/* Prominent Alert for expired checked-in bookings */}
+      {/* Compact expired indicator chip (no big banner) */}
       {expiredCheckedInCount > 0 && (
-        <Card className="p-6 bg-red-50 border-red-400 border-2 animate-pulse shadow-lg">
-          <div className="flex items-center gap-4">
-            <div className="flex-shrink-0">
-              <div className="w-12 h-12 rounded-full bg-red-500 flex items-center justify-center animate-ping">
-                <AlertTriangle className="w-6 h-6 text-white" />
-              </div>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-bold text-red-900 mb-1">
-                🚨 URGENT: {expiredCheckedInCount} Checkout{expiredCheckedInCount > 1 ? 's' : ''} Expired
-              </h3>
-              <p className="text-sm font-medium text-red-800 mb-2">
-                {expiredCheckedInCount > 1 
-                  ? `${expiredCheckedInCount} checked-in guests have exceeded their checkout time.`
-                  : 'A checked-in guest has exceeded their checkout time.'
-                }
-              </p>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {expiredBookings.slice(0, 3).map(({ booking, elapsed }) => {
-                  const hours = elapsed ? Math.floor(elapsed / 60) : 0
-                  const minutes = elapsed ? elapsed % 60 : 0
-                  return (
-                    <div key={booking.id} className="text-xs bg-red-100 px-2 py-1 rounded border border-red-300">
-                      <span className="font-semibold">{booking.customer}</span> - 
-                      <span className="ml-1">{booking.room}</span> - 
-                      <span className="ml-1 text-red-700">
-                        Expired {hours > 0 ? `${hours}h ` : ''}{minutes}m ago
-                      </span>
-                    </div>
-                  )
-                })}
-                {expiredCheckedInCount > 3 && (
-                  <div className="text-xs bg-red-100 px-2 py-1 rounded border border-red-300">
-                    +{expiredCheckedInCount - 3} more
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setStatusFilter("checked-in")}
-                className="border-red-300 text-red-700 hover:bg-red-100 hover:scale-105 transition-transform duration-200 font-semibold"
-              >
-                View All Expired
-              </Button>
-            </div>
-          </div>
-        </Card>
+        <div className="mb-4">
+          <button
+            onClick={() => setStatusFilter("checked-in")}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-600 text-white text-sm font-semibold shadow hover:bg-red-700 transition-colors"
+          >
+            <AlertTriangle className="w-4 h-4" />
+            {expiredCheckedInCount} checkout{expiredCheckedInCount > 1 ? 's' : ''} expired — View
+          </button>
+        </div>
       )}
 
       {/* Filters */}
@@ -1523,7 +1633,7 @@ export default function BookingsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
+      </div>
     </div>
   )
 }
