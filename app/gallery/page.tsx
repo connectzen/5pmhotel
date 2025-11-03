@@ -24,35 +24,35 @@ export default function PublicGalleryPage() {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      <h1 className="text-3xl font-bold">Gallery</h1>
+      <h1 className="text-3xl font-bold text-center md:text-left">Gallery</h1>
       {items.length > 0 ? (
-        <div className="space-y-4">
+        <div className="space-y-4 max-w-6xl mx-auto">
           {/* Main viewer */}
-          <div className="relative w-full aspect-[16/9] bg-muted rounded-lg overflow-hidden">
+          <div className="relative w-full h-[70vh] bg-muted rounded-lg overflow-hidden flex items-center justify-center">
             <img
               src={items[selectedIndex]?.url}
               alt={items[selectedIndex]?.title || "Gallery image"}
-              className="w-full h-full object-contain bg-black/5"
+              className="max-h-full max-w-full object-contain bg-black/5"
             />
             {/* Prev/Next buttons */}
             <button
               aria-label="Previous"
               onClick={() => setSelectedIndex((i) => (i - 1 + items.length) % items.length)}
-              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full w-10 h-10 grid place-items-center hover:bg-black/70"
+              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full w-8 h-8 md:w-10 md:h-10 grid place-items-center hover:bg-black/70"
             >
               ‹
             </button>
             <button
               aria-label="Next"
               onClick={() => setSelectedIndex((i) => (i + 1) % items.length)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full w-10 h-10 grid place-items-center hover:bg-black/70"
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full w-8 h-8 md:w-10 md:h-10 grid place-items-center hover:bg-black/70"
             >
               ›
             </button>
           </div>
 
           {/* Thumbnail strip with scroll arrows */}
-          <div className="relative">
+          <div className="relative max-w-6xl mx-auto">
             <button
               aria-label="Scroll left"
               onClick={() => stripRef.current?.scrollBy({ left: -300, behavior: "smooth" })}
@@ -62,7 +62,7 @@ export default function PublicGalleryPage() {
             </button>
             <div
               ref={stripRef}
-              className="flex gap-2 overflow-x-auto no-scrollbar px-10 py-2"
+              className="flex gap-2 overflow-x-auto no-scrollbar px-10 py-2 items-center"
             >
               {items.map((it, idx) => (
                 <button
@@ -70,7 +70,7 @@ export default function PublicGalleryPage() {
                   onClick={() => setSelectedIndex(idx)}
                   className={`shrink-0 border rounded-md overflow-hidden ${idx === selectedIndex ? "ring-2 ring-accent" : ""}`}
                 >
-                  <img src={it.url} alt={it.title || "thumb"} className="w-24 h-16 object-cover" />
+                  <img src={it.url} alt={it.title || "thumb"} className="w-28 h-20 md:w-32 md:h-24 object-cover" />
                 </button>
               ))}
             </div>
