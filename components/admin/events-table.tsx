@@ -65,7 +65,7 @@ export function EventsTable({
 
   return (
     <Card>
-      <div className="overflow-x-auto -mx-3 sm:mx-0">
+      <div className="overflow-x-auto">
         <table className="w-full min-w-[1000px] sm:min-w-[1200px] md:min-w-[1400px]">
           <thead className="bg-muted border-b border-border">
             <tr>
