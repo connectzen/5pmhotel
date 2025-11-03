@@ -86,7 +86,7 @@ export default function RoomDetailsPage() {
     return (
       <div className="min-h-screen flex flex-col">
         <Navbar />
-        <main className="flex-1 flex items-center justify-center">
+        <main className="flex-1 pt-16 flex items-center justify-center">
           <div className="text-center">
             <h1 className="font-serif text-3xl font-bold text-primary mb-4">Room Not Found</h1>
             <Link href="/rooms" className="text-accent hover:underline">
@@ -103,7 +103,7 @@ export default function RoomDetailsPage() {
     return (
       <div className="min-h-screen flex flex-col">
         <Navbar />
-        <main className="flex-1 flex items-center justify-center">
+        <main className="flex-1 pt-16 flex items-center justify-center">
           <p className="text-sm text-muted-foreground">Loading room…</p>
         </main>
         <Footer />
@@ -126,7 +126,7 @@ export default function RoomDetailsPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className="flex-1">
+      <main className="flex-1 pt-16">
         {/* Image Gallery */}
         <div className="relative h-96 md:h-screen bg-gray-200 overflow-hidden">
           <div

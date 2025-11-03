@@ -186,7 +186,7 @@ export default function VenueDetailsPage() {
     return (
       <div className="min-h-screen flex flex-col">
         <Navbar />
-        <main className="flex-1 flex items-center justify-center">
+        <main className="flex-1 pt-16 flex items-center justify-center">
           <div className="text-center">
             <p className="text-foreground/70">Loading venue...</p>
           </div>
@@ -200,7 +200,7 @@ export default function VenueDetailsPage() {
     return (
       <div className="min-h-screen flex flex-col">
         <Navbar />
-        <main className="flex-1 flex items-center justify-center">
+        <main className="flex-1 pt-16 flex items-center justify-center">
           <div className="text-center">
             <h1 className="font-serif text-3xl font-bold text-primary mb-4">Venue Not Found</h1>
             <Link href="/venues" className="text-accent hover:underline">
@@ -216,7 +216,7 @@ export default function VenueDetailsPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className="flex-1">
+      <main className="flex-1 pt-16">
         {/* Hero Image */}
         <div className="h-96 md:h-screen bg-cover bg-center" style={{ backgroundImage: `url('${venue.image || venue.images?.[0] || "/luxury-ballroom.jpg"}')` }} />
 

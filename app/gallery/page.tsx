@@ -27,7 +27,7 @@ export default function PublicGalleryPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className="flex-1">
+      <main className="flex-1 pt-20">
         <div className="p-4 md:p-6 space-y-6">
       <h1 className="text-3xl font-bold text-center md:text-left">Gallery</h1>
       {items.length > 0 ? (

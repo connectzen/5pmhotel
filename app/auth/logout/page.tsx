@@ -14,7 +14,7 @@ export default function LogoutPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className="flex-1">
+      <main className="flex-1 pt-16">
         <section className="bg-primary text-primary-foreground py-12 px-4">
           <div className="max-w-7xl mx-auto">
             <h1 className="font-serif text-4xl font-bold mb-2">Signed out</h1>
