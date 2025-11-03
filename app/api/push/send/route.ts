@@ -1,3 +1,5 @@
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
 import { NextResponse } from "next/server"
 import { getAdminMessaging } from "@/lib/firebaseAdmin"
 import { getFirestore, collection, getDocs, query, where } from "firebase/firestore"
