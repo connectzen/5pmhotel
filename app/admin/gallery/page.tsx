@@ -1,9 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { collection, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore"
+import { collection, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc } from "firebase/firestore"
 import { db, storage } from "@/lib/firebase"
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
@@ -80,8 +80,28 @@ export default function AdminGalleryPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {items.map((it) => (
-          <Card key={it.id} className="overflow-hidden">
+          <Card key={it.id} className="overflow-hidden group relative">
             <img src={it.url} alt={it.title || "Gallery image"} className="w-full h-48 object-cover" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition" />
+            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    // Try delete storage object via public URL
+                    const r = ref(storage, it.url as any)
+                    await deleteObject(r).catch(() => {})
+                    await deleteDoc(doc(db, "gallery", it.id!))
+                    toast.success("Deleted")
+                  } catch {
+                    toast.error("Delete failed")
+                  }
+                }}
+              >
+                Delete
+              </Button>
+            </div>
           </Card>
         ))}
       </div>
