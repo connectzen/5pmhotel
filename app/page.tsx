@@ -7,6 +7,7 @@ import { VenuesPreview } from "@/components/home/venues-preview"
 import { Testimonials } from "@/components/home/testimonials"
 import { LocationMap } from "@/components/home/location-map"
 import { CreateEvent } from "@/components/home/create-event"
+import { GalleryPreview } from "@/components/home/gallery-preview"
 
 export default function Home() {
   return (
@@ -18,6 +19,7 @@ export default function Home() {
         <FeaturedRooms />
         <VenuesPreview />
         <CreateEvent />
+        <GalleryPreview />
         <Testimonials />
         <LocationMap />
       </main>

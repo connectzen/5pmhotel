@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react"
 import { collection, onSnapshot } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { Card } from "@/components/ui/card"
+import { Navbar } from "@/components/navbar"
+import { Footer } from "@/components/footer"
 
 type GalleryItem = { id: string; url: string; title?: string }
 
@@ -23,7 +25,10 @@ export default function PublicGalleryPage() {
   }, [])
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="min-h-screen flex flex-col">
+      <Navbar />
+      <main className="flex-1">
+        <div className="p-4 md:p-6 space-y-6">
       <h1 className="text-3xl font-bold text-center md:text-left">Gallery</h1>
       {items.length > 0 ? (
         <div className="space-y-4 max-w-6xl mx-auto">
@@ -86,6 +91,9 @@ export default function PublicGalleryPage() {
       ) : (
         <p className="text-muted-foreground">No images yet.</p>
       )}
+        </div>
+      </main>
+      <Footer />
     </div>
   )
 }
