@@ -31,25 +31,56 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     }
     return false
   })
-  const [authorized, setAuthorized] = useState<boolean | null>(null)
+  // Initialize with cached auth state if available, otherwise null
+  const [authorized, setAuthorized] = useState<boolean | null>(() => {
+    if (typeof window !== "undefined") {
+      const cached = sessionStorage.getItem("adminAuthorized")
+      return cached === "true" ? true : cached === "false" ? false : null
+    }
+    return null
+  })
   const router = useRouter()
 
   useEffect(() => {
+    let isMounted = true
+    
     const unsubscribe = onAuthUser(async (user) => {
+      if (!isMounted) return
+      
       if (!user) {
-        setAuthorized(false)
-        router.replace("/auth/signin")
+        if (isMounted) {
+          setAuthorized(false)
+          sessionStorage.setItem("adminAuthorized", "false")
+          router.replace("/auth/signin")
+        }
         return
       }
-      const role = await getUserRole(user.uid)
-      if (role === "admin") {
-        setAuthorized(true)
-      } else {
-        setAuthorized(false)
-        router.replace("/auth/signin")
+      
+      try {
+        const role = await getUserRole(user.uid)
+        if (isMounted) {
+          if (role === "admin") {
+            setAuthorized(true)
+            sessionStorage.setItem("adminAuthorized", "true")
+          } else {
+            setAuthorized(false)
+            sessionStorage.setItem("adminAuthorized", "false")
+            router.replace("/auth/signin")
+          }
+        }
+      } catch (error) {
+        console.error("Error checking admin role:", error)
+        if (isMounted) {
+          setAuthorized(false)
+          sessionStorage.setItem("adminAuthorized", "false")
+        }
       }
     })
-    return () => unsubscribe()
+    
+    return () => {
+      isMounted = false
+      unsubscribe()
+    }
   }, [router])
 
   // Persist collapsed state to localStorage
@@ -71,16 +102,19 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  // If we have cached authorization, show content immediately
+  // The auth check will run in background and update if needed
+  if (authorized === false) {
+    return null
+  }
+  
+  // Show loading only if we truly don't know the auth state (first load, no cache)
   if (authorized === null) {
     return (
       <div className="flex h-screen items-center justify-center">
         <span className="text-sm text-muted-foreground">Checking access…</span>
       </div>
     )
-  }
-
-  if (!authorized) {
-    return null
   }
 
   return (

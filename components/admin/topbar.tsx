@@ -91,6 +91,7 @@ export function AdminTopbar({ onToggleSidebar, onToggleCollapse, sidebarCollapse
   const handleLogout = () => {
     localStorage.removeItem("adminToken")
     localStorage.removeItem("adminEmail")
+    sessionStorage.removeItem("adminAuthorized")
     window.location.href = "/admin/login"
   }
 
