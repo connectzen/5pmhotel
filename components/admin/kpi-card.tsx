@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card"
-import { TrendingUp, TrendingDown, Users, DollarSign, Percent, LogOut, Calendar, AlertCircle } from "lucide-react"
+import { TrendingUp, TrendingDown, Users, Wallet, Percent, LogOut, Calendar, AlertCircle } from "lucide-react"
 
 interface KPICardProps {
   title: string
@@ -18,7 +18,7 @@ export function KPICard({ title, value, icon, trend }: KPICardProps) {
       case "Occupancy":
         return <Percent className="w-8 h-8 text-accent" />
       case "Revenue":
-        return <DollarSign className="w-8 h-8 text-accent" />
+        return <Wallet className="w-8 h-8 text-accent" />
       case "PendingBookings":
         return <Calendar className="w-8 h-8 text-accent" />
       case "PendingEvents":

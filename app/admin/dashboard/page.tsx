@@ -6,14 +6,13 @@ import { KPICard } from "@/components/admin/kpi-card"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import Link from "next/link"
-import { Plus, Users, DollarSign, Calendar, AlertCircle, Bed } from "lucide-react"
+import { Plus, Users, Calendar, AlertCircle, Bed } from "lucide-react"
 import { OccupancyReportChart } from "@/components/admin/occupancy-report-chart";
 import { RoomDistributionChart } from "@/components/admin/room-distribution-chart";
 import { RevenueReportChart } from "@/components/admin/revenue-report-chart";
 import { collection, onSnapshot } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { parseISO, isValid, isToday, startOfDay } from "date-fns"
-import NotificationsOptIn from "@/components/admin/notifications-optin"
 import { onAuthUser, getUserRole } from "@/lib/auth"
 
 export default function DashboardPage() {
@@ -381,9 +380,7 @@ export default function DashboardPage() {
   return (
     <div className="h-full flex flex-col min-w-0">
       <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 md:space-y-8 bg-background flex-1 overflow-y-auto">
-      {userInfo && (
-        <NotificationsOptIn userId={userInfo.uid} role={userInfo.role} />
-      )}
+      {/* Notifications opt-in removed as per request */}
       {/* Header */}
       <div className="flex items-center justify-between pb-4 sm:pb-6 border-b border-border/50">
         <div>

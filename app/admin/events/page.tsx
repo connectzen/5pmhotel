@@ -556,53 +556,55 @@ export default function EventsPage() {
     <div className="h-full flex flex-col min-w-0">
       <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 flex-1 overflow-y-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+      <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground">Events</h1>
           <p className="text-muted-foreground mt-1 text-sm sm:text-base">Approve client event requests and manage booked events</p>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button
-            onClick={() => setCreateEventModalOpen(true)}
-            className="gap-2 hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
-          >
-            <Plus className="w-4 h-4" />
-            Create Event
-          </Button>
-          <Button
-            variant={viewType === "all" ? "default" : "outline"}
-            onClick={() => setViewType("all")}
-            className={`${viewType === "all" ? "" : "border text-foreground"} hover:scale-105 transition-transform duration-200`}
-          >
-            All
-          </Button>
-          <Button
-            variant={viewType === "created" ? "default" : "outline"}
-            onClick={() => setViewType("created")}
-            className={`relative ${viewType === "created" ? "" : "border text-foreground"} hover:scale-105 transition-transform duration-200`}
-          >
-            Pending Events
-            {pendingEventsCount > 0 && (
-              <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-bold bg-red-500 text-white">
-                {pendingEventsCount > 99 ? "99+" : pendingEventsCount}
-              </span>
-            )}
-          </Button>
-          <Button
-            variant={viewType === "booked" ? "default" : "outline"}
-            onClick={() => setViewType("booked")}
-            className={`${viewType === "booked" ? "" : "border text-foreground"} hover:scale-105 transition-transform duration-200`}
-          >
-            Booked Events
-          </Button>
-          <Button
-            variant={viewType === "rejected" ? "default" : "outline"}
-            onClick={() => setViewType("rejected")}
-            className={`gap-2 ${viewType === "rejected" ? "" : "border text-foreground"} hover:scale-105 transition-transform duration-200`}
-          >
-            <XCircle className="w-4 h-4" /> Rejected
-          </Button>
-        </div>
+        <Button
+          onClick={() => setCreateEventModalOpen(true)}
+          className="gap-2 hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
+        >
+          <Plus className="w-4 h-4" />
+          Create Event
+        </Button>
+      </div>
+
+      {/* View/Filter Actions */}
+      <div className="flex gap-2 flex-wrap">
+        <Button
+          variant={viewType === "all" ? "default" : "outline"}
+          onClick={() => setViewType("all")}
+          className={`${viewType === "all" ? "" : "border text-foreground"} hover:scale-105 transition-transform duration-200`}
+        >
+          All
+        </Button>
+        <Button
+          variant={viewType === "created" ? "default" : "outline"}
+          onClick={() => setViewType("created")}
+          className={`relative ${viewType === "created" ? "" : "border text-foreground"} hover:scale-105 transition-transform duration-200`}
+        >
+          Pending Events
+          {pendingEventsCount > 0 && (
+            <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-bold bg-red-500 text-white">
+              {pendingEventsCount > 99 ? "99+" : pendingEventsCount}
+            </span>
+          )}
+        </Button>
+        <Button
+          variant={viewType === "booked" ? "default" : "outline"}
+          onClick={() => setViewType("booked")}
+          className={`${viewType === "booked" ? "" : "border text-foreground"} hover:scale-105 transition-transform duration-200`}
+        >
+          Booked Events
+        </Button>
+        <Button
+          variant={viewType === "rejected" ? "default" : "outline"}
+          onClick={() => setViewType("rejected")}
+          className={`gap-2 ${viewType === "rejected" ? "" : "border text-foreground"} hover:scale-105 transition-transform duration-200`}
+        >
+          <XCircle className="w-4 h-4" /> Rejected
+        </Button>
       </div>
 
       {/* All Events */}

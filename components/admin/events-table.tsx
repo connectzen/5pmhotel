@@ -66,17 +66,17 @@ export function EventsTable({
   return (
     <Card>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1000px] sm:min-w-[1200px] md:min-w-[1400px]">
+        <table className="w-full">
           <thead className="bg-muted border-b border-border">
             <tr>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[200px]">Event Name</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[150px]">Venue</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[120px]">Date</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[100px]">Guests</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[180px]">Customer</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[150px]">Contact</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[100px]">Status</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[120px]">Actions</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Event</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Venue</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Date</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Guests</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Customer</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Contact</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Status</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -160,13 +160,14 @@ export function EventsTable({
                               Approve
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => onDelete(event)} disabled={isProcessing} className="text-red-600">
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
                           </>
                         )}
+                        {/* Always allow delete for any status */}
+                        <DropdownMenuItem onClick={() => onDelete(event)} disabled={isProcessing} className="text-red-600">
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => onEdit(event)} disabled={isProcessing}>
                           <Edit className="mr-2 h-4 w-4" />
                           Edit

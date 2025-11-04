@@ -205,16 +205,15 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
   return (
     <Card>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[800px] sm:min-w-[1000px] md:min-w-[1200px]">
+        <table className="w-full">
           <thead className="bg-muted border-b border-border">
             <tr>
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[180px]">Customer Email</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[120px]">Customer</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[130px]">Mobile Number</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[100px]">Room</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[180px]">Dates</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[100px]">Status</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[100px]">Amount</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Dates</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[160px]">Status / Amount</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground min-w-[120px]">Actions</th>
             </tr>
           </thead>
@@ -265,7 +264,18 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
                 </td>
                 <td className="px-4 py-4 text-sm text-foreground">{booking.room}</td>
                 <td className="px-4 py-4 text-sm text-muted-foreground">
-                  {booking.dates}
+                  {/* Stack check-in and check-out on separate lines */}
+                  {(() => {
+                    const parts = (booking.dates || "").split(" - ")
+                    const inDate = parts[0] || ""
+                    const outDate = parts[1] || ""
+                    return (
+                      <div className="space-y-1">
+                        <div><span className="text-foreground font-medium">In:</span> {inDate}</div>
+                        <div><span className="text-foreground font-medium">Out:</span> {outDate}</div>
+                      </div>
+                    )
+                  })()}
                   {booking.status === "checked-in" && (
                     <div className="mt-1 space-y-0.5">
                       {(booking as any).checkInTime && (
@@ -309,13 +319,13 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
                   )}
                 </td>
                 <td className="px-4 py-4">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-start gap-3 flex-wrap">
                     <Badge className={`capitalize ${getStatusColor(booking.status, expiration.expired)} ${expiration.expired ? '!ring-2 !ring-red-400 dark:!ring-red-500' : ''}`}>
                       {expiration.expired ? 'Expired • ' : ''}{booking.status}
                     </Badge>
+                    <span className="text-sm font-semibold text-foreground">KES {booking.amount.toLocaleString()}</span>
                   </div>
                 </td>
-                <td className="px-4 py-4 text-sm font-medium text-foreground">KES {booking.amount.toLocaleString()}</td>
                 <td className="px-4 py-4">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
