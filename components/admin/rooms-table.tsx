@@ -73,8 +73,8 @@ export function RoomsTable({ rooms, onEdit, onDelete, busyId }: RoomsTableProps)
                   {room.isOutOfStock ? (
                     <Badge className="bg-red-100 text-red-800 border-red-300 flex items-center gap-1 w-fit text-xs">
                       <XCircle className="w-3 h-3" />
-                      <span className="hidden sm:inline">Out of Stock</span>
-                      <span className="sm:hidden">Out</span>
+                      <span className="hidden sm:inline">None Available</span>
+                      <span className="sm:hidden">None</span>
                     </Badge>
                   ) : room.isAvailable ? (
                     <Badge className="bg-green-100 text-green-800 border-green-300 flex items-center gap-1 w-fit text-xs">

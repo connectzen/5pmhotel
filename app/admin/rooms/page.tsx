@@ -179,7 +179,7 @@ export default function RoomsPage() {
               onClick={() => setAvailabilityFilter("out-of-stock")}
               className="hover:scale-105 transition-transform duration-200 whitespace-nowrap"
             >
-              Out of Stock ({roomsWithAvailability.filter((r) => r.isOutOfStock).length})
+              None Available ({roomsWithAvailability.filter((r) => r.isOutOfStock).length})
             </Button>
           </div>
         </div>
