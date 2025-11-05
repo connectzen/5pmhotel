@@ -31,18 +31,19 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     }
     return false
   })
-  // Initialize with cached auth state - default to true if cache exists, null only on first load
+  // Initialize with cached auth state - ALWAYS prefer cache, never null if cache exists
+  // This prevents the loading screen from showing on navigation
   const [authorized, setAuthorized] = useState<boolean | null>(() => {
     if (typeof window !== "undefined") {
+      // Check sessionStorage first (faster)
       const cached = sessionStorage.getItem("adminAuthorized")
-      // If we have a cached value (even false), use it immediately
-      // Only show loading if there's no cache at all (first visit)
       if (cached === "true") return true
       if (cached === "false") return false
-      // No cache - check localStorage as fallback (more persistent)
+      
+      // Fallback to localStorage (more persistent, survives page reloads)
       const persistentCache = localStorage.getItem("adminAuthorized")
       if (persistentCache === "true") {
-        // Set sessionStorage too for consistency
+        // Sync to sessionStorage for faster future access
         sessionStorage.setItem("adminAuthorized", "true")
         return true
       }
@@ -50,7 +51,16 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         sessionStorage.setItem("adminAuthorized", "false")
         return false
       }
+      
+      // Only return null if NO cache exists at all (first visit ever)
+      // But even then, if initial check was done before, assume true
+      if (localStorage.getItem("adminInitialCheckDone") === "true") {
+        // We've authenticated before, trust that we're still authorized
+        // This prevents loading screen on navigation
+        return true
+      }
     }
+    // Only null on first visit ever (no cache, no previous check)
     return null
   })
   const router = useRouter()
@@ -150,21 +160,23 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     return null
   }
   
-  // Show loading only if we truly don't know the auth state AND it's truly the first check ever
-  // After initial check is done (tracked in localStorage), always show content (auth runs in background)
+  // Check cache and initial check status BEFORE deciding to show loading
+  // This prevents the loading screen from flashing on mobile navigation
   const initialCheckDone = typeof window !== "undefined" && localStorage.getItem("adminInitialCheckDone") === "true"
-  
-  // Also check if we have any cached auth value (even if authorized state is null due to remount)
   const hasCachedAuth = typeof window !== "undefined" && (
     sessionStorage.getItem("adminAuthorized") === "true" || 
     localStorage.getItem("adminAuthorized") === "true"
   )
   
-  // Only show loading if:
-  // 1. We have no cached auth value
-  // 2. Initial check hasn't been done before
-  // 3. We're currently in initial check state
-  if (authorized === null && !hasCachedAuth && isInitialCheck && !initialCheckDone) {
+  // NEVER show loading screen if:
+  // 1. We have any cached auth value (trust the cache)
+  // 2. Initial check has been done before (we've authenticated at least once)
+  // Only show loading on the very first visit ever (no cache, no previous check)
+  if (hasCachedAuth || initialCheckDone) {
+    // Show content immediately - auth check runs in background
+    // This ensures smooth navigation on mobile without loading screens
+  } else if (authorized === null && isInitialCheck) {
+    // Only show loading on first visit ever (no cache, no previous check)
     return (
       <div className="flex h-screen items-center justify-center">
         <span className="text-sm text-muted-foreground">Checking access…</span>
@@ -172,8 +184,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     )
   }
   
-  // If authorized is null but initial check is done OR we have cached auth, show content anyway
-  // (This handles edge cases where cache might be temporarily unavailable or component remounts)
+  // Show content - either we have cache/previous check, or authorized is true
   // The auth check will run in background and update if needed
 
   return (
