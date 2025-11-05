@@ -164,11 +164,21 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     return null
   }
   
+  // Check if initial check was done before (persistent across remounts)
+  const initialCheckDonePersistent = typeof window !== "undefined" && 
+    localStorage.getItem("adminInitialCheckDone") === "true"
+  
   // Only show loading screen on client after mount if:
   // 1. We're mounted (hydration complete)
   // 2. We have no cached auth AND initial check hasn't been done (true first visit)
+  // 3. Initial check was NOT done before (persistent check)
   // Never show loading during SSR to avoid hydration mismatch
-  const shouldShowLoading = isMounted && authorized === null && isInitialCheck && !hasCachedAuth
+  // NEVER show loading if initial check was done before (even if state is reset)
+  const shouldShowLoading = isMounted && 
+    authorized === null && 
+    isInitialCheck && 
+    !hasCachedAuth &&
+    !initialCheckDonePersistent
   
   if (shouldShowLoading) {
     return (
