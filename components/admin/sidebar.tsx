@@ -209,6 +209,12 @@ export function AdminSidebar({ collapsed = false, onClose, isMobile = false, onC
             const linkContent = (
               <Link
                 href={item.href}
+                onClick={() => {
+                  // Close mobile sidebar when navigating
+                  if (isMobile && onClose) {
+                    onClose()
+                  }
+                }}
                 className={cn(
                   "flex items-center gap-3 rounded-lg transition-all duration-300 relative group overflow-hidden",
                   collapsed ? "justify-center px-2 py-3" : "justify-between px-4 py-3",

@@ -31,15 +31,30 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     }
     return false
   })
-  // Initialize with cached auth state if available, otherwise null
+  // Initialize with cached auth state - default to true if cache exists, null only on first load
   const [authorized, setAuthorized] = useState<boolean | null>(() => {
     if (typeof window !== "undefined") {
       const cached = sessionStorage.getItem("adminAuthorized")
-      return cached === "true" ? true : cached === "false" ? false : null
+      // If we have a cached value (even false), use it immediately
+      // Only show loading if there's no cache at all (first visit)
+      if (cached === "true") return true
+      if (cached === "false") return false
+      // No cache - check localStorage as fallback (more persistent)
+      const persistentCache = localStorage.getItem("adminAuthorized")
+      if (persistentCache === "true") {
+        // Set sessionStorage too for consistency
+        sessionStorage.setItem("adminAuthorized", "true")
+        return true
+      }
+      if (persistentCache === "false") {
+        sessionStorage.setItem("adminAuthorized", "false")
+        return false
+      }
     }
     return null
   })
   const router = useRouter()
+  const [isInitialCheck, setIsInitialCheck] = useState(true)
 
   useEffect(() => {
     let isMounted = true
@@ -51,6 +66,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         if (isMounted) {
           setAuthorized(false)
           sessionStorage.setItem("adminAuthorized", "false")
+          localStorage.setItem("adminAuthorized", "false")
           router.replace("/auth/signin")
         }
         return
@@ -62,17 +78,29 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           if (role === "admin") {
             setAuthorized(true)
             sessionStorage.setItem("adminAuthorized", "true")
+            localStorage.setItem("adminAuthorized", "true")
           } else {
             setAuthorized(false)
             sessionStorage.setItem("adminAuthorized", "false")
+            localStorage.setItem("adminAuthorized", "false")
             router.replace("/auth/signin")
           }
         }
       } catch (error) {
         console.error("Error checking admin role:", error)
         if (isMounted) {
-          setAuthorized(false)
-          sessionStorage.setItem("adminAuthorized", "false")
+          // On error, if we have a cached true value, keep it
+          // Only set to false if we don't have a cache
+          const cached = sessionStorage.getItem("adminAuthorized")
+          if (cached !== "true") {
+            setAuthorized(false)
+            sessionStorage.setItem("adminAuthorized", "false")
+            localStorage.setItem("adminAuthorized", "false")
+          }
+        }
+      } finally {
+        if (isMounted) {
+          setIsInitialCheck(false)
         }
       }
     })
@@ -108,14 +136,19 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     return null
   }
   
-  // Show loading only if we truly don't know the auth state (first load, no cache)
-  if (authorized === null) {
+  // Show loading only if we truly don't know the auth state AND it's the initial check
+  // After initial check, always show content (auth runs in background)
+  if (authorized === null && isInitialCheck) {
     return (
       <div className="flex h-screen items-center justify-center">
         <span className="text-sm text-muted-foreground">Checking access…</span>
       </div>
     )
   }
+  
+  // If authorized is null but initial check is done, show content anyway
+  // (This handles edge cases where cache might be temporarily unavailable)
+  // The auth check will run in background and update if needed
 
   return (
     <div className="dark flex h-screen bg-background overflow-hidden">
