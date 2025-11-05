@@ -83,18 +83,6 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
     // IMPORTANT: checkOutTime field is the primary field name used in the system
     const checkoutTime = (booking as any).checkOutTime || (booking as any).checkoutTime || (booking as any).checkOut || null
     const checkoutDateStr = (booking as any).checkOutDate || (booking as any).checkOut || (booking as any).checkoutDate || null
-    
-    // DEBUG: Log ALL booking fields to see what we actually have
-    console.log('[EXPIRATION DEBUG]', {
-      bookingId: booking.id,
-      customer: booking.customer,
-      status: booking.status,
-      dates: booking.dates,
-      ALL_FIELDS: booking,
-      checkOutTime: checkoutTime,
-      checkOutDateStr: checkoutDateStr,
-      now: now.toISOString(),
-    })
 
     // Parse checkout date
     let checkoutDate: Date | null = null
@@ -184,20 +172,6 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
     // Compare dates properly
     const expired = now.getTime() > checkoutDateTime.getTime()
     const elapsed = expired ? Math.floor((now.getTime() - checkoutDateTime.getTime()) / (1000 * 60)) : null // in minutes
-
-    // DEBUG: Always log the result
-    console.log('[EXPIRATION RESULT]', {
-      bookingId: booking.id,
-      customer: booking.customer,
-      expired,
-      elapsed,
-      now: now.toISOString(),
-      nowLocal: now.toString(),
-      checkoutDateTime: checkoutDateTime.toISOString(),
-      checkoutDateTimeLocal: checkoutDateTime.toString(),
-      timeDiffMs: now.getTime() - checkoutDateTime.getTime(),
-      timeDiffMinutes: elapsed,
-    })
 
     return { expired, elapsed }
   }
