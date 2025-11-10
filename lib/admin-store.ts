@@ -34,6 +34,26 @@ export interface Venue {
   status: "active" | "inactive"
   description?: string
   images?: string[]
+  // Optional detailed configuration for events/venues
+  capacities?: {
+    theatre?: number
+    classroom?: number
+    uShape?: number
+    boardroom?: number
+  }
+  operatingHours?: {
+    start?: string // "08:00"
+    end?: string   // "22:00"
+  }
+  setupInclusions?: string[] // e.g., ["Audio Visual", "Breakout rooms", ...]
+  packages?: Array<{
+    id: string
+    name: string
+    description?: string
+    durationHours?: number
+    cateringIncluded?: boolean
+    price?: number
+  }>
 }
 
 export interface Payment {

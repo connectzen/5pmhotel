@@ -29,6 +29,10 @@ export function VenueFormModal({ venue, onSave, onClose }: VenueFormModalProps) 
       status: "active",
       description: "",
       images: [],
+      capacities: { theatre: 0, classroom: 0, uShape: 0, boardroom: 0 },
+      operatingHours: { start: "08:00", end: "22:00" },
+      setupInclusions: [],
+      packages: [],
     },
   )
 
@@ -88,9 +92,31 @@ export function VenueFormModal({ venue, onSave, onClose }: VenueFormModalProps) 
     }
   }
 
+  const addPackage = () => {
+    const pkg = {
+      id: crypto.randomUUID(),
+      name: "",
+      description: "",
+      durationHours: 5,
+      cateringIncluded: false,
+      price: 0,
+    }
+    setFormData({ ...formData, packages: [...(formData.packages || []), pkg] })
+  }
+
+  const updatePackage = (id: string, patch: Partial<NonNullable<Venue["packages"]>[number]>) => {
+    const next = (formData.packages || []).map(p => p.id === id ? { ...p, ...patch } : p)
+    setFormData({ ...formData, packages: next })
+  }
+
+  const removePackage = (id: string) => {
+    const next = (formData.packages || []).filter(p => p.id !== id)
+    setFormData({ ...formData, packages: next })
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-      <Card className="w-full max-w-md max-h-[90vh] flex flex-col">
+      <Card className="w-full max-w-2xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-6 pb-4 border-b border-border">
           <h2 className="text-xl font-semibold text-foreground">{venue ? "Edit Venue" : "Add New Venue"}</h2>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -98,7 +124,7 @@ export function VenueFormModal({ venue, onSave, onClose }: VenueFormModalProps) 
           </button>
         </div>
         <div className="overflow-y-auto flex-1 p-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className={`block text-sm font-medium mb-2 ${errors.name ? "text-red-600" : ""}`}>
                 Venue Name {errors.name && <span className="text-xs">({errors.name})</span>}
@@ -109,6 +135,31 @@ export function VenueFormModal({ venue, onSave, onClose }: VenueFormModalProps) 
                 placeholder="e.g., Grand Ballroom"
                 className={errors.name ? "border-red-500 focus:ring-red-500" : ""}
               />
+            </div>
+
+            {/* Base capacity and price */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Base Capacity</label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={formData.capacity}
+                  onChange={(e) => handleFieldChange("capacity", Number(e.target.value))}
+                  placeholder="Total capacity"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Base Price (KES)</label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={formData.price}
+                  onChange={(e) => handleFieldChange("price", Number(e.target.value))}
+                  placeholder="e.g., 150000"
+                />
+              </div>
             </div>
 
             <div>
@@ -135,6 +186,188 @@ export function VenueFormModal({ venue, onSave, onClose }: VenueFormModalProps) 
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
               </select>
+            </div>
+
+            {/* Operating hours */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Operating Hours</label>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="block text-xs text-muted-foreground mb-1">Start</span>
+                  <Input
+                    type="time"
+                    value={formData.operatingHours?.start || ""}
+                    onChange={(e) =>
+                      handleFieldChange("operatingHours", {
+                        ...(formData.operatingHours || {}),
+                        start: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <span className="block text-xs text-muted-foreground mb-1">End</span>
+                  <Input
+                    type="time"
+                    value={formData.operatingHours?.end || ""}
+                    onChange={(e) =>
+                      handleFieldChange("operatingHours", {
+                        ...(formData.operatingHours || {}),
+                        end: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Capacity per layout */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Capacity by Layout</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                <div>
+                  <span className="block text-xs text-muted-foreground mb-1">Theatre</span>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={formData.capacities?.theatre ?? 0}
+                    onChange={(e) =>
+                      handleFieldChange("capacities", {
+                        ...(formData.capacities || {}),
+                        theatre: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <span className="block text-xs text-muted-foreground mb-1">Classroom</span>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={formData.capacities?.classroom ?? 0}
+                    onChange={(e) =>
+                      handleFieldChange("capacities", {
+                        ...(formData.capacities || {}),
+                        classroom: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <span className="block text-xs text-muted-foreground mb-1">U-Shape</span>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={formData.capacities?.uShape ?? 0}
+                    onChange={(e) =>
+                      handleFieldChange("capacities", {
+                        ...(formData.capacities || {}),
+                        uShape: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <span className="block text-xs text-muted-foreground mb-1">Boardroom</span>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={formData.capacities?.boardroom ?? 0}
+                    onChange={(e) =>
+                      handleFieldChange("capacities", {
+                        ...(formData.capacities || {}),
+                        boardroom: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Inclusions */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Package Inclusions</label>
+              <textarea
+                value={(formData.setupInclusions || []).join("\n")}
+                onChange={(e) =>
+                  handleFieldChange(
+                    "setupInclusions",
+                    e.target.value
+                      .split("\n")
+                      .map((s) => s.trim())
+                      .filter(Boolean),
+                  )
+                }
+                className="w-full px-3 py-2 border rounded-lg bg-secondary text-foreground min-h-24 border-border"
+                placeholder="One inclusion per line (e.g., Audio Visual, Wireless presentation, Breakout rooms, ...)"
+              />
+            </div>
+
+            {/* Packages */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium">Packages</label>
+                <Button type="button" onClick={addPackage} className="h-8 px-3 text-sm">Add Package</Button>
+              </div>
+              <div className="space-y-3">
+                {(formData.packages || []).map((pkg) => (
+                  <div key={pkg.id} className="border border-border rounded-lg p-3 grid grid-cols-1 md:grid-cols-12 gap-3">
+                    <div className="md:col-span-3">
+                      <span className="block text-xs text-muted-foreground mb-1">Name</span>
+                      <Input
+                        value={pkg.name}
+                        onChange={(e) => updatePackage(pkg.id, { name: e.target.value })}
+                        placeholder="Half-Day Seminar"
+                      />
+                    </div>
+                    <div className="md:col-span-4">
+                      <span className="block text-xs text-muted-foreground mb-1">Description</span>
+                      <Input
+                        value={pkg.description || ""}
+                        onChange={(e) => updatePackage(pkg.id, { description: e.target.value })}
+                        placeholder="5 hours + 2 tea breaks"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <span className="block text-xs text-muted-foreground mb-1">Duration (hrs)</span>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={pkg.durationHours ?? 5}
+                        onChange={(e) => updatePackage(pkg.id, { durationHours: Number(e.target.value) })}
+                      />
+                    </div>
+                    <div className="md:col-span-1 flex items-end">
+                      <label className="inline-flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={!!pkg.cateringIncluded}
+                          onChange={(e) => updatePackage(pkg.id, { cateringIncluded: e.target.checked })}
+                        />
+                        Catering
+                      </label>
+                    </div>
+                    <div className="md:col-span-2">
+                      <span className="block text-xs text-muted-foreground mb-1">Price (KES)</span>
+                      <Input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={pkg.price ?? 0}
+                        onChange={(e) => updatePackage(pkg.id, { price: Number(e.target.value) })}
+                      />
+                    </div>
+                    <div className="md:col-span-12 flex justify-end">
+                      <Button type="button" variant="outline" onClick={() => removePackage(pkg.id)} className="h-8 px-3">
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {(!formData.packages || formData.packages.length === 0) && (
+                  <div className="text-xs text-muted-foreground">No packages added yet.</div>
+                )}
+              </div>
             </div>
 
             <div>
