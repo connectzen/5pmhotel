@@ -42,17 +42,22 @@ export function FeaturedRooms() {
                   </div>
                 </div>
               </div>
-              <div className="p-5">
+              <div className="p-5 flex flex-col h-full">
                 <h3 className="font-serif text-xl font-bold text-primary mb-3 group-hover:text-accent transition-colors">{room.name}</h3>
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-sm text-foreground/70 flex items-center gap-1">
                     👥 {room.capacity ?? 1} guest(s)
                   </span>
                 </div>
-                <div className="flex items-center justify-between pt-3 border-t border-border/50">
-                  <div>
-                    <span className="font-serif text-2xl font-bold text-accent">KSh {room.price ?? 0}</span>
-                    <span className="text-xs text-muted-foreground block">per night</span>
+                <div className="mt-auto pt-3 border-t border-border/50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-serif text-2xl font-bold text-accent">KSh {room.price ?? 0}</span>
+                      <span className="text-xs text-muted-foreground block">per night</span>
+                    </div>
+                    <span className="inline-flex items-center px-3 py-1 rounded-md bg-accent text-accent-foreground text-xs font-semibold transition group-hover:opacity-90">
+                      View
+                    </span>
                   </div>
                 </div>
               </div>
