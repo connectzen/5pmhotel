@@ -42,10 +42,10 @@ export function VenuesPreview() {
               <Link
                 key={venue.id}
                 href={`/venues/${venue.id}`}
-                className="bg-card rounded-lg overflow-hidden shadow-md transition-all duration-300 group border border-border/50 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className="bg-card rounded-lg overflow-hidden shadow-md transition-all duration-300 group border border-border/50 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-accent flex flex-col"
               >
                 <div className="h-48 bg-cover bg-center transition-transform duration-300 group-hover:scale-105" style={{ backgroundImage: `url('${img}')` }} />
-                <div className="p-4 flex flex-col h-full">
+                <div className="p-4 flex flex-col flex-1">
                   <h3 className="font-serif text-xl font-bold text-primary mb-2 group-hover:text-accent transition-colors">{venue.name}</h3>
                   {venue.operatingHours?.start && venue.operatingHours?.end && (
                     <p className="text-xs text-foreground/70 mb-2">Hours: {venue.operatingHours.start} – {venue.operatingHours.end}</p>
@@ -64,10 +64,10 @@ export function VenuesPreview() {
                   ) : (
                     <p className="text-sm text-muted-foreground">No packages added yet</p>
                   )}
-                  <div className="mt-auto pt-4">
-                    <span className="inline-flex items-center px-3 py-1 rounded-md bg-accent text-accent-foreground text-xs font-semibold transition group-hover:opacity-90">
-                      View
-                    </span>
+                  <div className="mt-auto pt-4 flex justify-end">
+                    <button className="inline-flex items-center justify-center px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-semibold transition-all group-hover:bg-primary/90 group-hover:scale-105 shadow-md whitespace-nowrap">
+                      View Details
+                    </button>
                   </div>
                 </div>
               </Link>

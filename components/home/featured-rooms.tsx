@@ -32,7 +32,7 @@ export function FeaturedRooms() {
             <Link
               key={room.id}
               href={`/rooms/${room.id}`}
-              className="bg-card rounded-xl overflow-hidden shadow-lg transition-all duration-300 group border border-border/50 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="bg-card rounded-xl overflow-hidden shadow-lg transition-all duration-300 group border border-border/50 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-accent flex flex-col"
             >
               <div className="relative h-48 bg-cover bg-center overflow-hidden transition-transform duration-300 group-hover:scale-105" style={{ backgroundImage: `url('${(room as any).image ?? (room as any).images?.[0] ?? "/luxury-single-room.jpg"}')` }}>
                 <div className="absolute top-3 right-3">
@@ -42,22 +42,22 @@ export function FeaturedRooms() {
                   </div>
                 </div>
               </div>
-              <div className="p-5 flex flex-col h-full">
+              <div className="p-5 flex flex-col flex-1">
                 <h3 className="font-serif text-xl font-bold text-primary mb-3 group-hover:text-accent transition-colors">{room.name}</h3>
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-sm text-foreground/70 flex items-center gap-1">
                     👥 {room.capacity ?? 1} guest(s)
                   </span>
                 </div>
-                <div className="mt-auto pt-3 border-t border-border/50">
-                  <div className="flex items-center justify-between">
+                <div className="mt-auto pt-4 border-t border-border/50">
+                  <div className="flex items-center justify-between gap-3">
                     <div>
                       <span className="font-serif text-2xl font-bold text-accent">KSh {room.price ?? 0}</span>
                       <span className="text-xs text-muted-foreground block">per night</span>
                     </div>
-                    <span className="inline-flex items-center px-3 py-1 rounded-md bg-accent text-accent-foreground text-xs font-semibold transition group-hover:opacity-90">
-                      View
-                    </span>
+                    <button className="inline-flex items-center justify-center px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-semibold transition-all group-hover:bg-primary/90 group-hover:scale-105 shadow-md whitespace-nowrap">
+                      View Details
+                    </button>
                   </div>
                 </div>
               </div>
