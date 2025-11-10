@@ -37,6 +37,65 @@ export function CreateEvent() {
     () => venues.find((v) => v.id === selectedVenueId),
     [venues, selectedVenueId],
   )
+  // Venue-driven selections
+  const [selectedPackageId, setSelectedPackageId] = useState<string>("")
+  const selectedPackage = useMemo(
+    () => selectedVenue?.packages?.find((p) => p.id === selectedPackageId),
+    [selectedVenue, selectedPackageId],
+  )
+  const [timeStepMinutes, setTimeStepMinutes] = useState<number>(30)
+  const timeOptions = useMemo(() => {
+    const opts: string[] = []
+    const start = selectedVenue?.operatingHours?.start
+    const end = selectedVenue?.operatingHours?.end
+    if (!start || !end) return opts
+    const [sh, sm] = start.split(":").map(Number)
+    const [eh, em] = end.split(":").map(Number)
+    const startMin = (sh || 0) * 60 + (sm || 0)
+    const endMin = (eh || 0) * 60 + (em || 0)
+    const step = Math.max(5, timeStepMinutes || 30)
+    for (let m = startMin; m <= endMin; m += step) {
+      const hh = String(Math.floor(m / 60)).padStart(2, "0")
+      const mm = String(m % 60).padStart(2, "0")
+      opts.push(`${hh}:${mm}`)
+    }
+    return opts
+  }, [selectedVenue, timeStepMinutes])
+  const [startTime, setStartTime] = useState<string>("")
+  const [showTimeOverflowWarning, setShowTimeOverflowWarning] = useState(false)
+  const computedEndTime = useMemo(() => {
+    if (!startTime || !selectedPackage?.durationHours) return ""
+    const [h, m] = startTime.split(":").map(Number)
+    const totalStart = (h || 0) * 60 + (m || 0)
+    const durationMin = (selectedPackage.durationHours || 0) * 60
+    const endTotal = totalStart + durationMin
+
+    const venueEnd = selectedVenue?.operatingHours?.end
+    if (!venueEnd) {
+      const endH = Math.floor(endTotal / 60) % 24
+      const endM = endTotal % 60
+      setShowTimeOverflowWarning(false)
+      return `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`
+    }
+
+    const [eh, em] = venueEnd.split(":").map(Number)
+    const endMinAllowed = (eh || 0) * 60 + (em || 0)
+    if (endTotal > endMinAllowed) {
+      setShowTimeOverflowWarning(true)
+      return venueEnd // clamp to venue end
+    } else {
+      setShowTimeOverflowWarning(false)
+      const endH = Math.floor(endTotal / 60) % 24
+      const endM = endTotal % 60
+      return `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`
+    }
+  }, [startTime, selectedPackage, selectedVenue])
+
+  const totalPrice = useMemo(() => {
+    const base = typeof selectedVenue?.price === "number" ? selectedVenue!.price : 0
+    const pkg = typeof selectedPackage?.price === "number" ? selectedPackage!.price! : 0
+    return base + pkg
+  }, [selectedVenue, selectedPackage])
 
   const [eventName, setEventName] = useState("")
   const [eventDate, setEventDate] = useState<Date | undefined>()
@@ -78,6 +137,11 @@ export function CreateEvent() {
   useEffect(() => {
     if (!selectedVenueId && venues.length) setSelectedVenueId(venues[0].id)
   }, [selectedVenueId, venues])
+  useEffect(() => {
+    // default selections whenever venue changes
+    setSelectedPackageId(selectedVenue?.packages?.[0]?.id || "")
+    setStartTime(timeOptions[0] || "")
+  }, [selectedVenue, timeOptions])
 
   // Close calendar on outside click
   useEffect(() => {
@@ -102,6 +166,8 @@ export function CreateEvent() {
       date?: boolean;
       customerName?: boolean;
       customerEmail?: boolean;
+      startTime?: boolean;
+      package?: boolean;
     } = {}
     let hasErrors = false
 
@@ -123,6 +189,16 @@ export function CreateEvent() {
     }
     if (!customerEmail.trim() || !customerEmail.includes("@")) {
       newErrors.customerEmail = true
+      hasErrors = true
+    }
+    // Require package when venue has packages
+    if (selectedVenue?.packages && selectedVenue.packages.length > 0 && !selectedPackageId) {
+      newErrors.package = true
+      hasErrors = true
+    }
+    // Require start time if venue has operating hours
+    if (selectedVenue?.operatingHours?.start && selectedVenue?.operatingHours?.end && !startTime) {
+      newErrors.startTime = true
       hasErrors = true
     }
 
@@ -159,6 +235,15 @@ export function CreateEvent() {
     try {
       await addDoc(collection(db, "clientEvents"), {
         ...pending,
+        // Include selected package and timing details for backend handling
+        packageId: selectedPackage?.id ?? null,
+        packageName: selectedPackage?.name ?? null,
+        packagePrice: typeof selectedPackage?.price === "number" ? selectedPackage?.price : null,
+        packageDurationHours: selectedPackage?.durationHours ?? null,
+        startTime: startTime || null,
+        endTime: computedEndTime || null,
+        timeStepMinutes,
+        totalPrice,
         createdAt: serverTimestamp(),
       })
       
@@ -221,6 +306,34 @@ export function CreateEvent() {
                 ))}
               </select>
             </div>
+            {/* Package selection, if any */}
+            {selectedVenue?.packages && selectedVenue.packages.length > 0 && (
+              <div>
+                <label className="block text-sm font-semibold mb-1">Package</label>
+                <select
+                  value={selectedPackageId}
+                  onChange={(e) => {
+                    setSelectedPackageId(e.target.value)
+                    if (errors.package) setErrors(prev => ({ ...prev, package: false }))
+                  }}
+                  className={`w-full px-3 py-2 border rounded-lg bg-background text-foreground ${
+                    errors.package ? "border-red-500 border-2" : "border-border"
+                  }`}
+                >
+                  {selectedVenue.packages.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}{typeof p.price === "number" ? ` • KES ${p.price}` : ""}{p.durationHours ? ` • ${p.durationHours}h` : ""}
+                    </option>
+                  ))}
+                </select>
+                {selectedPackage && startTime && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Starts {startTime}{selectedPackage.durationHours ? ` • Ends ${computedEndTime}` : ""}
+                  </p>
+                )}
+                {errors.package && <p className="text-xs text-red-600 mt-1">Please select a package.</p>}
+              </div>
+            )}
             <div>
               <label className="block text-sm font-semibold mb-1">Date</label>
               <div className="relative" ref={calWrapperRef}>
@@ -253,6 +366,49 @@ export function CreateEvent() {
                 )}
               </div>
             </div>
+            {/* Time selection inside operating hours */}
+            {timeOptions.length > 0 && (
+              <div>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <label className="block text-sm font-semibold mb-1">Start Time</label>
+                    <select
+                      value={startTime}
+                      onChange={(e) => {
+                        setStartTime(e.target.value)
+                        if (errors.startTime) setErrors(prev => ({ ...prev, startTime: false }))
+                      }}
+                      className={`w-full px-3 py-2 border rounded-lg bg-background text-foreground ${
+                        errors.startTime ? "border-red-500 border-2" : "border-border"
+                      }`}
+                    >
+                      {timeOptions.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                    {errors.startTime && <p className="text-xs text-red-600 mt-1">Please select a start time.</p>}
+                    {showTimeOverflowWarning && (
+                      <p className="text-xs text-amber-600 mt-1">
+                        End time exceeds operating hours; clamped to {selectedVenue?.operatingHours?.end}.
+                      </p>
+                    )}
+                  </div>
+                  <div className="w-40">
+                    <label className="block text-sm font-semibold mb-1">Time Step</label>
+                    <select
+                      value={String(timeStepMinutes)}
+                      onChange={(e) => setTimeStepMinutes(parseInt(e.target.value, 10))}
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground"
+                    >
+                      <option value="5">5 min</option>
+                      <option value="15">15 min</option>
+                      <option value="30">30 min</option>
+                      <option value="60">1 hour</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-semibold mb-1">Guests</label>
               <input type="number" min={1} value={guests} onChange={(e) => setGuests(parseInt(e.target.value || "0", 10))} className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground" />
@@ -319,6 +475,27 @@ export function CreateEvent() {
               <p className="text-sm text-muted-foreground"><strong>Name:</strong> {selectedVenue?.name}</p>
               <p className="text-sm text-muted-foreground"><strong>Capacity:</strong> {selectedVenue?.capacity}</p>
               <p className="text-sm text-muted-foreground"><strong>Base Price:</strong> KES {selectedVenue?.price?.toLocaleString()}</p>
+              {selectedPackage && (
+                <p className="text-sm text-muted-foreground">
+                  <strong>Selected Package:</strong> {selectedPackage.name}{typeof selectedPackage.price === "number" ? ` (KES ${selectedPackage.price})` : ""}
+                </p>
+              )}
+              {startTime && (
+                <p className="text-sm text-muted-foreground">
+                  <strong>Start:</strong> {startTime}{computedEndTime ? ` • End: ${computedEndTime}` : ""}
+                </p>
+              )}
+              <p className="text-sm text-foreground mt-2">
+                <strong>Total:</strong> KES {totalPrice.toLocaleString()}
+              </p>
+              {selectedVenue?.operatingHours?.start && selectedVenue?.operatingHours?.end && (
+                <p className="text-sm text-muted-foreground"><strong>Hours:</strong> {selectedVenue.operatingHours.start} – {selectedVenue.operatingHours.end}</p>
+              )}
+              {selectedVenue?.capacities && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  <strong>Layouts:</strong> Theatre {selectedVenue.capacities.theatre ?? 0}, Classroom {selectedVenue.capacities.classroom ?? 0}, U-Shape {selectedVenue.capacities.uShape ?? 0}, Boardroom {selectedVenue.capacities.boardroom ?? 0}
+                </p>
+              )}
               {selectedVenue?.description && <p className="text-sm mt-2">{selectedVenue.description}</p>}
             </div>
             <div>

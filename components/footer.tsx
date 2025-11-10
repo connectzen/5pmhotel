@@ -67,6 +67,9 @@ export function Footer() {
               <a href="#" className="hover:opacity-80 transition">
                 Twitter
               </a>
+              <a href="https://www.tiktok.com/@fivepm_nairobi?_r=1&_t=ZM-91HKkZ1AVr6" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition">
+                TikTok
+              </a>
             </div>
           </div>
         </div>

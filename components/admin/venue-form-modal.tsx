@@ -35,6 +35,9 @@ export function VenueFormModal({ venue, onSave, onClose }: VenueFormModalProps) 
       packages: [],
     },
   )
+  const packagesContainerRef = useRef<HTMLDivElement | null>(null)
+  const lastAddedInputRef = useRef<HTMLInputElement | null>(null)
+  const [lastAddedPackageId, setLastAddedPackageId] = useState<string | null>(null)
 
   const handleImages = async (files: FileList | null) => {
     if (!files || files.length === 0) return
@@ -102,6 +105,14 @@ export function VenueFormModal({ venue, onSave, onClose }: VenueFormModalProps) 
       price: 0,
     }
     setFormData({ ...formData, packages: [...(formData.packages || []), pkg] })
+    setLastAddedPackageId(pkg.id)
+    // Smoothly scroll the newly added row into view
+    setTimeout(() => {
+      const container = packagesContainerRef.current
+      if (container && container.lastElementChild) {
+        ;(container.lastElementChild as HTMLElement).scrollIntoView({ behavior: "smooth", block: "start" })
+      }
+    }, 0)
   }
 
   const updatePackage = (id: string, patch: Partial<NonNullable<Venue["packages"]>[number]>) => {
@@ -113,6 +124,25 @@ export function VenueFormModal({ venue, onSave, onClose }: VenueFormModalProps) 
     const next = (formData.packages || []).filter(p => p.id !== id)
     setFormData({ ...formData, packages: next })
   }
+
+  const timeOptions: string[] = React.useMemo(() => {
+    const opts: string[] = []
+    for (let m = 0; m < 24 * 60; m += 30) {
+      const hh = String(Math.floor(m / 60)).padStart(2, "0")
+      const mm = String(m % 60).padStart(2, "0")
+      opts.push(`${hh}:${mm}`)
+    }
+    return opts
+  }, [])
+
+  // Focus the name input after a package is added
+  React.useEffect(() => {
+    if (lastAddedPackageId && lastAddedInputRef.current) {
+      lastAddedInputRef.current.focus()
+      // Clear the marker so subsequent adds re-focus
+      setLastAddedPackageId(null)
+    }
+  }, [lastAddedPackageId])
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
@@ -137,30 +167,7 @@ export function VenueFormModal({ venue, onSave, onClose }: VenueFormModalProps) 
               />
             </div>
 
-            {/* Base capacity and price */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Base Capacity</label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={formData.capacity}
-                  onChange={(e) => handleFieldChange("capacity", Number(e.target.value))}
-                  placeholder="Total capacity"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Base Price (KES)</label>
-                <Input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) => handleFieldChange("price", Number(e.target.value))}
-                  placeholder="e.g., 150000"
-                />
-              </div>
-            </div>
+            {/* Removed base capacity and base price in favor of package-based configuration */}
 
             <div>
               <label className={`block text-sm font-medium mb-2 ${errors.description ? "text-red-600" : ""}`}>
@@ -194,8 +201,7 @@ export function VenueFormModal({ venue, onSave, onClose }: VenueFormModalProps) 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <span className="block text-xs text-muted-foreground mb-1">Start</span>
-                  <Input
-                    type="time"
+                  <select
                     value={formData.operatingHours?.start || ""}
                     onChange={(e) =>
                       handleFieldChange("operatingHours", {
@@ -203,12 +209,17 @@ export function VenueFormModal({ venue, onSave, onClose }: VenueFormModalProps) 
                         start: e.target.value,
                       })
                     }
-                  />
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-secondary text-foreground"
+                  >
+                    <option value="">Select start time</option>
+                    {timeOptions.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <span className="block text-xs text-muted-foreground mb-1">End</span>
-                  <Input
-                    type="time"
+                  <select
                     value={formData.operatingHours?.end || ""}
                     onChange={(e) =>
                       handleFieldChange("operatingHours", {
@@ -216,7 +227,13 @@ export function VenueFormModal({ venue, onSave, onClose }: VenueFormModalProps) 
                         end: e.target.value,
                       })
                     }
-                  />
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-secondary text-foreground"
+                  >
+                    <option value="">Select end time</option>
+                    {timeOptions.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
@@ -309,18 +326,23 @@ export function VenueFormModal({ venue, onSave, onClose }: VenueFormModalProps) 
                 <label className="block text-sm font-medium">Packages</label>
                 <Button type="button" onClick={addPackage} className="h-8 px-3 text-sm">Add Package</Button>
               </div>
-              <div className="space-y-3">
+              <div ref={packagesContainerRef} className="space-y-3 max-h-[60vh] overflow-auto">
                 {(formData.packages || []).map((pkg) => (
                   <div key={pkg.id} className="border border-border rounded-lg p-3 grid grid-cols-1 md:grid-cols-12 gap-3">
                     <div className="md:col-span-3">
                       <span className="block text-xs text-muted-foreground mb-1">Name</span>
                       <Input
+                        ref={(el) => {
+                          if (pkg.id === lastAddedPackageId) {
+                            lastAddedInputRef.current = el
+                          }
+                        }}
                         value={pkg.name}
                         onChange={(e) => updatePackage(pkg.id, { name: e.target.value })}
                         placeholder="Half-Day Seminar"
                       />
                     </div>
-                    <div className="md:col-span-4">
+                  <div className="md:col-span-3">
                       <span className="block text-xs text-muted-foreground mb-1">Description</span>
                       <Input
                         value={pkg.description || ""}
@@ -338,7 +360,7 @@ export function VenueFormModal({ venue, onSave, onClose }: VenueFormModalProps) 
                       />
                     </div>
                     <div className="md:col-span-1 flex items-end">
-                      <label className="inline-flex items-center gap-2 text-sm">
+                      <label className="inline-flex items-center gap-2 text-sm whitespace-nowrap">
                         <input
                           type="checkbox"
                           checked={!!pkg.cateringIncluded}
@@ -347,7 +369,7 @@ export function VenueFormModal({ venue, onSave, onClose }: VenueFormModalProps) 
                         Catering
                       </label>
                     </div>
-                    <div className="md:col-span-2">
+                    <div className="md:col-span-3">
                       <span className="block text-xs text-muted-foreground mb-1">Price (KES)</span>
                       <Input
                         type="number"
@@ -355,6 +377,7 @@ export function VenueFormModal({ venue, onSave, onClose }: VenueFormModalProps) 
                         step="0.01"
                         value={pkg.price ?? 0}
                         onChange={(e) => updatePackage(pkg.id, { price: Number(e.target.value) })}
+                        className="w-full min-w-[200px]"
                       />
                     </div>
                     <div className="md:col-span-12 flex justify-end">

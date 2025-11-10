@@ -34,6 +34,9 @@ type VenueData = {
   }
   price?: number
   status?: string
+  // New fields from dashboard form
+  operatingHours?: { start?: string; end?: string }
+  packages?: Array<{ id: string; name: string; description?: string; durationHours?: number; price?: number; cateringIncluded?: boolean }>
 }
 
 export default function VenueDetailsPage() {
@@ -55,6 +58,35 @@ export default function VenueDetailsPage() {
   const [customerPhone, setCustomerPhone] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
+  // Package/time derived from venue
+  const [selectedPackageId, setSelectedPackageId] = useState<string>("")
+  const selectedPackage = useMemo(() => venue?.packages?.find(p => p.id === selectedPackageId), [venue, selectedPackageId])
+  const [startTime, setStartTime] = useState<string>("")
+  const timeOptions = useMemo(() => {
+    const opts: string[] = []
+    const start = venue?.operatingHours?.start
+    const end = venue?.operatingHours?.end
+    if (!start || !end) return opts
+    const [sh, sm] = start.split(":").map(Number)
+    const [eh, em] = end.split(":").map(Number)
+    const startMin = (sh || 0) * 60 + (sm || 0)
+    const endMin = (eh || 0) * 60 + (em || 0)
+    for (let m = startMin; m <= endMin; m += 30) {
+      const hh = String(Math.floor(m / 60)).padStart(2, "0")
+      const mm = String(m % 60).padStart(2, "0")
+      opts.push(`${hh}:${mm}`)
+    }
+    return opts
+  }, [venue])
+  const computedEndTime = useMemo(() => {
+    if (!startTime || !selectedPackage?.durationHours) return ""
+    const [h, mm] = startTime.split(":").map(Number)
+    const base = (h || 0) * 60 + (mm || 0)
+    const endTotal = base + (selectedPackage.durationHours || 0) * 60
+    const endH = Math.floor(endTotal / 60) % 24
+    const endM = endTotal % 60
+    return `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`
+  }, [startTime, selectedPackage])
   
   const CONTACT_PHONE = "+254-722-867-400"
   
@@ -116,6 +148,12 @@ export default function VenueDetailsPage() {
         customerPhone: customerPhone.trim(),
         note: specialRequests.trim() || undefined,
         eventType: eventType,
+        packageId: selectedPackage?.id ?? null,
+        packageName: selectedPackage?.name ?? null,
+        packagePrice: typeof selectedPackage?.price === "number" ? selectedPackage?.price : null,
+        packageDurationHours: selectedPackage?.durationHours ?? null,
+        startTime: startTime || null,
+        endTime: computedEndTime || null,
         status: "pending",
         type: "venue-quote", // To differentiate from other bookings
         createdAt: serverTimestamp(),
@@ -163,11 +201,10 @@ export default function VenueDetailsPage() {
           images: data.images || (data.image ? [data.image] : []),
           setupStyles: data.setupStyles || [],
           facilities: data.facilities || [],
-          pricing: data.pricing || {
-            halfDay: data.price ? Math.round(data.price * 0.6) : 0,
-            fullDay: data.price || 0,
-            executiveRetreat: data.price ? Math.round(data.price * 2) : 0,
-          },
+          // Do not derive dummy pricing; show only real packages from dashboard
+          pricing: undefined,
+          operatingHours: data.operatingHours || undefined,
+          packages: data.packages || [],
         })
       } catch (error) {
         console.error("Error loading venue:", error)
@@ -181,6 +218,12 @@ export default function VenueDetailsPage() {
       loadVenue()
     }
   }, [venueId])
+  
+  // Default select first package and time when venue loads
+  useEffect(() => {
+    setSelectedPackageId(venue?.packages?.[0]?.id || "")
+    setStartTime(timeOptions[0] || "")
+  }, [venue, timeOptions])
 
   if (loading) {
     return (
@@ -269,6 +312,28 @@ export default function VenueDetailsPage() {
                 <h3 className="font-serif text-2xl font-bold text-primary mb-6">Request a Quote</h3>
 
                 <form className="space-y-4" onSubmit={handleSubmit}>
+                  {venue.packages && venue.packages.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-semibold text-foreground mb-2">Package</label>
+                      <select
+                        value={selectedPackageId}
+                        onChange={(e) => setSelectedPackageId(e.target.value)}
+                        className="w-full px-4 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-accent"
+                      >
+                        {venue.packages.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}{typeof p.price === "number" ? ` • KES ${p.price}` : ""}{p.durationHours ? ` • ${p.durationHours}h` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      {selectedPackageId && startTime && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Starts {startTime}{selectedPackage?.durationHours ? ` • Ends ${computedEndTime}` : ""}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  
                   <div>
                     <label className="block text-sm font-semibold text-foreground mb-2">Your Name</label>
                     <input
@@ -350,6 +415,21 @@ export default function VenueDetailsPage() {
                       )}
                     </div>
                   </div>
+                  
+                  {timeOptions.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-semibold text-foreground mb-2">Start Time</label>
+                      <select
+                        value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)}
+                        className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent bg-background"
+                      >
+                        {timeOptions.map((t) => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-sm font-semibold text-foreground mb-2">Number of Guests</label>
@@ -384,29 +464,20 @@ export default function VenueDetailsPage() {
                   </button>
                 </form>
 
-                {venue.pricing && (
+                {(venue.packages && venue.packages.length > 0) ? (
                   <div className="mt-6 pt-6 border-t border-border">
-                    <h4 className="font-semibold text-primary mb-4">Pricing Guide</h4>
-                    <div className="space-y-2 text-sm">
-                      {venue.pricing.halfDay !== undefined && (
-                        <div className="flex justify-between">
-                          <span className="text-foreground/70">Half Day</span>
-                          <span className="font-semibold">KES {venue.pricing.halfDay.toLocaleString()}</span>
-                        </div>
-                      )}
-                      {venue.pricing.fullDay !== undefined && (
-                        <div className="flex justify-between">
-                          <span className="text-foreground/70">Full Day</span>
-                          <span className="font-semibold">KES {venue.pricing.fullDay.toLocaleString()}</span>
-                        </div>
-                      )}
-                      {venue.pricing.executiveRetreat !== undefined && (
-                        <div className="flex justify-between">
-                          <span className="text-foreground/70">Executive Retreat</span>
-                          <span className="font-semibold">KES {venue.pricing.executiveRetreat.toLocaleString()}</span>
-                        </div>
-                      )}
+                    <h4 className="font-semibold text-primary mb-3">Packages</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {venue.packages.map((p) => (
+                        <span key={p.id} className="text-xs px-2 py-1 rounded-full border border-border bg-background">
+                          {p.name}{typeof p.price === "number" ? ` • KES ${p.price}` : ""}{p.durationHours ? ` • ${p.durationHours}h` : ""}
+                        </span>
+                      ))}
                     </div>
+                  </div>
+                ) : (
+                  <div className="mt-6 pt-6 border-t border-border">
+                    <p className="text-sm text-muted-foreground">No packages added yet.</p>
                   </div>
                 )}
               </div>

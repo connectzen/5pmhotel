@@ -24,13 +24,13 @@ export default function AboutPage() {
             <div className="prose prose-lg max-w-none">
               <h2 className="font-serif text-3xl font-bold text-primary mb-4">Our Story</h2>
               <p className="text-foreground/80 leading-relaxed mb-4">
-                5PM Hotel stands as a beacon of luxury and hospitality in the heart of the city. Founded with a
-                vision to create an unforgettable experience for every guest, we have been dedicated to excellence for
-                over two decades.
+                5PM Hotel is a welcoming place for travelers and event organizers in the heart of the city.
+                Since our founding, we have focused on comfortable stays, friendly service, and reliable venues
+                that make planning simple and stress-free.
               </p>
               <p className="text-foreground/80 leading-relaxed">
-                Our commitment to providing world-class service, combined with our stunning facilities and prime
-                location, makes us the preferred choice for travelers and event organizers alike.
+                We aim to offer clear value, practical amenities, and a helpful team. Whether you're staying the night
+                or hosting an event, we work to make your experience straightforward and enjoyable.
               </p>
             </div>
           </div>
@@ -99,14 +99,13 @@ export default function AboutPage() {
           <div>
             <h2 className="font-serif text-3xl font-bold text-primary mb-8">Our Team</h2>
             <p className="text-foreground/70 text-lg leading-relaxed mb-8">
-              Our dedicated team of hospitality professionals is committed to ensuring your stay is exceptional. With
-              years of experience in the luxury hospitality industry, we pride ourselves on attention to detail and
-              personalized service.
+              Our team is committed to ensuring your stay is comfortable and your events run smoothly. With years of
+              experience, we pride ourselves on attention to detail and friendly, practical support.
             </p>
             <div className="bg-card rounded-lg p-8 shadow-md">
               <p className="text-foreground/70 italic">
-                "At 5PM Hotel, we believe that true luxury is not just about the finest amenities, but about creating
-                meaningful connections and unforgettable memories for our guests."
+                "At 5PM Hotel, we believe great hospitality is about simple, honest service and creating positive
+                experiences for our guests."
               </p>
               <p className="text-primary font-semibold mt-4">- Management Team</p>
             </div>

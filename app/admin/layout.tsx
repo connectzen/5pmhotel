@@ -71,7 +71,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
       setIsInitialCheck(false)
       // If we have no auth cache but initial check was done, assume authorized
       // Check the actual localStorage values, not state (which hasn't updated yet)
-      const hasCache = cached === "true" || persistentCache === "true"
+      const hasCache = cached === "true" || localStorage.getItem("adminAuthorized") === "true"
       if (!hasCache) {
         setAuthorized(true)
       }
@@ -164,9 +164,15 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     return null
   }
   
-  // Check if initial check was done before (persistent across remounts)
-  const initialCheckDonePersistent = typeof window !== "undefined" && 
-    localStorage.getItem("adminInitialCheckDone") === "true"
+  // Check if initial check was done before (persistent across remounts) - hydrated in effect to avoid SSR access
+  const [initialCheckDonePersistent, setInitialCheckDonePersistent] = useState(false)
+  useEffect(() => {
+    try {
+      setInitialCheckDonePersistent(localStorage.getItem("adminInitialCheckDone") === "true")
+    } catch {
+      setInitialCheckDonePersistent(false)
+    }
+  }, [])
   
   // Only show loading screen on client after mount if:
   // 1. We're mounted (hydration complete)

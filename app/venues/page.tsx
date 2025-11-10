@@ -101,23 +101,32 @@ export default function VenuesPage() {
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "venues"), (snap) => {
-      const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }))
+      const list = snap.docs.map((d) => {
+        const data = d.data() as any
+        const caps = data.capacities || {}
+        const theatre = Number(caps.theatre || 0)
+        const classroom = Number(caps.classroom || 0)
+        const uShape = Number(caps.uShape || 0)
+        const boardroom = Number(caps.boardroom || 0)
+        const maxCapacity = Math.max(theatre, classroom, uShape, boardroom, 0)
+        const availableLayouts: string[] = []
+        if (theatre > 0) availableLayouts.push("Theatre")
+        if (classroom > 0) availableLayouts.push("Classroom")
+        if (uShape > 0) availableLayouts.push("U-Shape")
+        if (boardroom > 0) availableLayouts.push("Boardroom")
+        return {
+          id: d.id,
+          ...data,
+          maxCapacity,
+          availableLayouts,
+        }
+      })
       setVenues(list)
     })
     return () => unsub()
   }, [])
 
-  const filteredVenues = useMemo(() => venues.filter((venue: any) => {
-    const capacityMatch =
-      selectedCapacity === "all" ||
-      (selectedCapacity === "small" && venue.capacity <= 150) ||
-      (selectedCapacity === "medium" && venue.capacity > 150 && venue.capacity <= 300) ||
-      (selectedCapacity === "large" && venue.capacity > 300)
-
-    const setupMatch = selectedSetup === "all" || (venue.setupStyles || []).includes(selectedSetup)
-
-    return capacityMatch && setupMatch
-  }), [venues, selectedCapacity, selectedSetup])
+  const filteredVenues = useMemo(() => venues, [venues])
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -136,40 +145,8 @@ export default function VenuesPage() {
         <div className="max-w-7xl mx-auto px-4 py-12">
           {/* Removed static Event Packages to avoid dummy data */}
 
-          {/* Filters */}
           <div className="mb-8">
             <h2 className="font-serif text-3xl font-bold text-primary mb-6">Our Venues</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">Capacity</label>
-                <select
-                  value={selectedCapacity}
-                  onChange={(e) => setSelectedCapacity(e.target.value)}
-                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
-                >
-                  <option value="all">All Capacities</option>
-                  <option value="small">Small (up to 150)</option>
-                  <option value="medium">Medium (150-300)</option>
-                  <option value="large">Large (300+)</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">Setup Style</label>
-                <select
-                  value={selectedSetup}
-                  onChange={(e) => setSelectedSetup(e.target.value)}
-                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
-                >
-                  <option value="all">All Styles</option>
-                  <option value="Theatre">Theatre</option>
-                  <option value="Classroom">Classroom</option>
-                  <option value="U-Shape">U-Shape</option>
-                  <option value="Boardroom">Boardroom</option>
-                  <option value="Cocktail">Cocktail</option>
-                  <option value="Banquet">Banquet</option>
-                </select>
-              </div>
-            </div>
           </div>
 
           {/* Venues Grid */}
@@ -184,13 +161,22 @@ export default function VenuesPage() {
                     <div className="flex items-center gap-4 mb-4 text-sm text-foreground/70">
                       <div className="flex items-center gap-1">
                         <Users size={16} />
-                        <span>{venue.capacity} guests</span>
+                        <span>{Number(venue.maxCapacity || 0)} guests</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Zap size={16} />
-                        <span>{(venue.setupStyles || []).length} setups</span>
+                        <span>{(venue.availableLayouts || []).length} layouts</span>
                       </div>
                     </div>
+                    {(venue.packages && venue.packages.length > 0) && (
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {venue.packages.slice(0, 3).map((p: any) => (
+                          <span key={p.id} className="text-xs px-2 py-1 rounded-full border border-border bg-background">
+                            {p.name}{typeof p.price === "number" ? ` • KES ${p.price}` : ""}{p.durationHours ? ` • ${p.durationHours}h` : ""}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <button className="w-full bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105">
                       View Details
                     </button>
@@ -210,3 +196,4 @@ export default function VenuesPage() {
     </div>
   )
 }
+

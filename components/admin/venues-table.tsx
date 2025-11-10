@@ -20,8 +20,8 @@ export function VenuesTable({ venues, onEdit, onDelete }: VenuesTableProps) {
           <thead className="bg-muted border-b border-border">
             <tr>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Venue Name</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Capacity</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Base Price (KES)</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Max Capacity</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Packages</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Images</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Status</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Actions</th>
@@ -31,8 +31,34 @@ export function VenuesTable({ venues, onEdit, onDelete }: VenuesTableProps) {
             {venues.map((venue) => (
               <tr key={venue.id} className="hover:bg-muted/50 transition-colors">
                 <td className="px-6 py-4 text-sm font-medium text-foreground">{venue.name}</td>
-                <td className="px-6 py-4 text-sm text-foreground">{venue.capacity} guests</td>
-                <td className="px-6 py-4 text-sm font-medium text-foreground">{venue.price.toLocaleString()}</td>
+                <td className="px-6 py-4 text-sm text-foreground">
+                  {Math.max(
+                    Number(venue.capacities?.theatre || 0),
+                    Number(venue.capacities?.classroom || 0),
+                    Number(venue.capacities?.uShape || 0),
+                    Number(venue.capacities?.boardroom || 0),
+                    Number(venue.capacity || 0)
+                  )}{" "}
+                  guests
+                </td>
+                <td className="px-6 py-4 text-sm text-foreground">
+                  {venue.packages && venue.packages.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {venue.packages.slice(0, 3).map((p) => (
+                        <span key={p.id} className="text-xs px-2 py-1 rounded-full border border-border bg-background">
+                          {p.name}{typeof p.price === "number" ? ` • KES ${p.price}` : ""}{p.durationHours ? ` • ${p.durationHours}h` : ""}
+                        </span>
+                      ))}
+                      {venue.packages.length > 3 && (
+                        <span className="text-xs px-2 py-1 rounded-full border border-dashed border-border bg-background/60">
+                          +{venue.packages.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">No packages</span>
+                  )}
+                </td>
                 <td className="px-6 py-4">
                   {venue.images && venue.images.length > 0 ? (
                     <div className="flex gap-1">
