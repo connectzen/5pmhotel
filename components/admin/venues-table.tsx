@@ -20,7 +20,6 @@ export function VenuesTable({ venues, onEdit, onDelete }: VenuesTableProps) {
           <thead className="bg-muted border-b border-border">
             <tr>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Venue Name</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Max Capacity</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Capacity by Layout</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Packages</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Images</th>
@@ -32,17 +31,7 @@ export function VenuesTable({ venues, onEdit, onDelete }: VenuesTableProps) {
             {venues.map((venue) => (
               <tr key={venue.id} className="hover:bg-muted/50 transition-colors">
                 <td className="px-6 py-4 text-sm font-medium text-foreground">{venue.name}</td>
-                <td className="px-6 py-4 text-sm text-foreground">
-                  {Math.max(
-                    Number(venue.capacities?.theatre || 0),
-                    Number(venue.capacities?.classroom || 0),
-                    Number(venue.capacities?.uShape || 0),
-                    Number(venue.capacities?.boardroom || 0),
-                    Number(venue.capacity || 0)
-                  )}{" "}
-                  guests
-                </td>
-                <td className="px-6 py-4 text-sm text-foreground">
+                <td className="px-6 py-4 text-sm text-foreground align-top">
                   {(() => {
                     const layoutEntries = [
                       { key: "theatre", label: "Theatre", value: venue.capacities?.theatre },
@@ -67,7 +56,7 @@ export function VenuesTable({ venues, onEdit, onDelete }: VenuesTableProps) {
                     )
                   })()}
                 </td>
-                <td className="px-6 py-4 text-sm text-foreground">
+                <td className="px-6 py-4 text-sm text-foreground align-top">
                   {venue.packages && venue.packages.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
                       {venue.packages.slice(0, 3).map((p) => (
