@@ -151,39 +151,55 @@ export default function VenuesPage() {
 
           {/* Venues Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredVenues.map((venue: any) => (
-              <Link key={venue.id} href={`/venues/${venue.id}`}>
-                <div className="bg-card rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer h-full flex flex-col hover:scale-105 hover:-translate-y-1 group">
-                  <div className="h-48 bg-cover bg-center transition-transform duration-300 group-hover:scale-110" style={{ backgroundImage: `url('${venue.image ?? venue.images?.[0] ?? "/luxury-ballroom.jpg"}')` }} />
-                  <div className="p-6 flex-1 flex flex-col">
-                    <h3 className="font-serif text-xl font-bold text-primary mb-2 group-hover:text-accent transition-colors">{venue.name}</h3>
-                    <p className="text-foreground/70 text-sm mb-4 flex-1">{venue.description}</p>
-                    <div className="flex items-center gap-4 mb-4 text-sm text-foreground/70">
-                      <div className="flex items-center gap-1">
-                        <Users size={16} />
-                        <span>{Number(venue.maxCapacity || 0)} guests</span>
+            {filteredVenues.map((venue: any) => {
+              const capacities = venue.capacities || {}
+              const layoutEntries = [
+                { key: "theatre", label: "Theatre", value: capacities.theatre },
+                { key: "classroom", label: "Classroom", value: capacities.classroom },
+                { key: "uShape", label: "U-Shape", value: capacities.uShape },
+                { key: "boardroom", label: "Boardroom", value: capacities.boardroom },
+              ].filter((layout) => typeof layout.value === "number" && layout.value > 0)
+              const layoutLine = layoutEntries.map((layout) => `${layout.label}: ${layout.value}`).join(" • ")
+
+              return (
+                <Link key={venue.id} href={`/venues/${venue.id}`}>
+                  <div className="bg-card rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer h-full flex flex-col hover:scale-105 hover:-translate-y-1 group">
+                    <div className="h-48 bg-cover bg-center transition-transform duration-300 group-hover:scale-110" style={{ backgroundImage: `url('${venue.image ?? venue.images?.[0] ?? "/luxury-ballroom.jpg"}')` }} />
+                    <div className="p-6 flex-1 flex flex-col">
+                      <h3 className="font-serif text-xl font-bold text-primary mb-2 group-hover:text-accent transition-colors">{venue.name}</h3>
+                      <p className="text-foreground/70 text-sm mb-4 flex-1">{venue.description}</p>
+                      <div className="flex items-center gap-4 mb-4 text-sm text-foreground/70">
+                        <div className="flex items-center gap-1">
+                          <Users size={16} />
+                          <span>{Number(venue.maxCapacity || 0)} guests</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Zap size={16} />
+                          <span>{(venue.availableLayouts || []).length} layouts</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Zap size={16} />
-                        <span>{(venue.availableLayouts || []).length} layouts</span>
-                      </div>
+                      {layoutEntries.length > 0 && (
+                        <div className="mb-4 text-xs text-muted-foreground overflow-x-auto whitespace-nowrap pr-1">
+                          <span>{layoutLine}</span>
+                        </div>
+                      )}
+                      {(venue.packages && venue.packages.length > 0) && (
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {venue.packages.slice(0, 3).map((p: any) => (
+                            <span key={p.id} className="text-xs px-2 py-1 rounded-full border border-border bg-background">
+                              {p.name}{typeof p.price === "number" ? ` • KES ${p.price}` : ""}{p.durationHours ? ` • ${p.durationHours}h` : ""}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <button className="w-full bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105">
+                        View Details
+                      </button>
                     </div>
-                    {(venue.packages && venue.packages.length > 0) && (
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {venue.packages.slice(0, 3).map((p: any) => (
-                          <span key={p.id} className="text-xs px-2 py-1 rounded-full border border-border bg-background">
-                            {p.name}{typeof p.price === "number" ? ` • KES ${p.price}` : ""}{p.durationHours ? ` • ${p.durationHours}h` : ""}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    <button className="w-full bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105">
-                      View Details
-                    </button>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              )
+            })}
             {filteredVenues.length === 0 && (
               <div className="col-span-full text-center text-foreground/70 py-12">
                 No venues available yet. Please check back later.

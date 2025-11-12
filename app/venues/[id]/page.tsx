@@ -37,6 +37,12 @@ type VenueData = {
   // New fields from dashboard form
   operatingHours?: { start?: string; end?: string }
   packages?: Array<{ id: string; name: string; description?: string; durationHours?: number; price?: number; cateringIncluded?: boolean }>
+  capacities?: {
+    theatre?: number
+    classroom?: number
+    uShape?: number
+    boardroom?: number
+  }
 }
 
 export default function VenueDetailsPage() {
@@ -95,6 +101,19 @@ export default function VenueDetailsPage() {
     d.setHours(0, 0, 0, 0)
     return d
   }, [])
+  const layoutEntries = useMemo(() => {
+    if (!venue?.capacities) return []
+    return [
+      { key: "theatre", label: "Theatre", value: venue.capacities.theatre },
+      { key: "classroom", label: "Classroom", value: venue.capacities.classroom },
+      { key: "uShape", label: "U-Shape", value: venue.capacities.uShape },
+      { key: "boardroom", label: "Boardroom", value: venue.capacities.boardroom },
+    ].filter((layout) => typeof layout.value === "number" && Number(layout.value) > 0)
+  }, [venue])
+  const layoutLine = useMemo(
+    () => layoutEntries.map((layout) => `${layout.label}: ${layout.value}`).join(" • "),
+    [layoutEntries],
+  )
   
   // Close calendar on outside click
   useEffect(() => {
@@ -205,6 +224,7 @@ export default function VenueDetailsPage() {
           pricing: undefined,
           operatingHours: data.operatingHours || undefined,
           packages: data.packages || [],
+          capacities: data.capacities || undefined,
         })
       } catch (error) {
         console.error("Error loading venue:", error)
@@ -288,6 +308,11 @@ export default function VenueDetailsPage() {
                     <p className="font-semibold">{venue.setupStyles && venue.setupStyles.length > 0 ? venue.setupStyles.join(", ") : "Flexible"}</p>
                   </div>
                 </div>
+                {layoutEntries.length > 0 && (
+                  <div className="mt-6 text-xs text-muted-foreground overflow-x-auto whitespace-nowrap pr-2">
+                    <span>{layoutLine}</span>
+                  </div>
+                )}
               </div>
 
               {venue.facilities && venue.facilities.length > 0 && (

@@ -12,6 +12,12 @@ type Venue = {
   images?: string[]
   operatingHours?: { start?: string; end?: string }
   packages?: Array<{ id: string; name: string; price?: number; durationHours?: number }>
+  capacities?: {
+    theatre?: number
+    classroom?: number
+    uShape?: number
+    boardroom?: number
+  }
 }
 
 export function VenuesPreview() {
@@ -38,6 +44,21 @@ export function VenuesPreview() {
             const img = (venue as any).image ?? venue.images?.[0] ?? "/luxury-ballroom.jpg"
             const pkgs = (venue.packages || []).slice(0, 3)
             const extraCount = Math.max(0, (venue.packages?.length || 0) - pkgs.length)
+            const capacities = venue.capacities || {}
+            const layoutLabels: Record<keyof NonNullable<Venue["capacities"]>, string> = {
+              theatre: "Theatre",
+              classroom: "Classroom",
+              uShape: "U-Shape",
+              boardroom: "Boardroom",
+            }
+            const layoutEntries = Object.entries(capacities)
+              .filter(([, value]) => typeof value === "number" && Number(value) > 0)
+              .map(([key, value]) => ({
+                key,
+                label: (layoutLabels as any)[key] ?? key,
+                value: Number(value),
+              }))
+            const layoutLine = layoutEntries.map((layout) => `${layout.label}: ${layout.value}`).join(" • ")
             return (
               <Link
                 key={venue.id}
@@ -63,6 +84,11 @@ export function VenuesPreview() {
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground">No packages added yet</p>
+                  )}
+                  {layoutEntries.length > 0 && (
+                    <div className="mt-4 text-xs text-muted-foreground overflow-x-auto whitespace-nowrap pr-1">
+                      <span>{layoutLine}</span>
+                    </div>
                   )}
                   <div className="mt-auto pt-4 flex justify-end">
                     <button className="inline-flex items-center justify-center px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-semibold transition-all group-hover:bg-primary/90 group-hover:scale-105 shadow-md whitespace-nowrap">
