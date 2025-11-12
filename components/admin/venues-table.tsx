@@ -21,6 +21,7 @@ export function VenuesTable({ venues, onEdit, onDelete }: VenuesTableProps) {
             <tr>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Venue Name</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Max Capacity</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Capacity by Layout</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Packages</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Images</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Status</th>
@@ -40,6 +41,31 @@ export function VenuesTable({ venues, onEdit, onDelete }: VenuesTableProps) {
                     Number(venue.capacity || 0)
                   )}{" "}
                   guests
+                </td>
+                <td className="px-6 py-4 text-sm text-foreground">
+                  {(() => {
+                    const layoutEntries = [
+                      { key: "theatre", label: "Theatre", value: venue.capacities?.theatre },
+                      { key: "classroom", label: "Classroom", value: venue.capacities?.classroom },
+                      { key: "uShape", label: "U-Shape", value: venue.capacities?.uShape },
+                      { key: "boardroom", label: "Boardroom", value: venue.capacities?.boardroom },
+                    ].filter((layout) => typeof layout.value === "number" && Number(layout.value) > 0)
+
+                    if (layoutEntries.length === 0) {
+                      return <span className="text-xs text-muted-foreground block">Not provided</span>
+                    }
+
+                    return (
+                      <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                        {layoutEntries.map((layout) => (
+                          <div key={layout.key} className="flex items-center justify-between rounded-md bg-background/40 border border-border/40 px-2 py-1">
+                            <span className="font-medium text-foreground">{layout.label}</span>
+                            <span>{layout.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })()}
                 </td>
                 <td className="px-6 py-4 text-sm text-foreground">
                   {venue.packages && venue.packages.length > 0 ? (
