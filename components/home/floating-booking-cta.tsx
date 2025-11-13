@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { cn } from "@/lib/utils"
 
 export function FloatingBookingCta() {
   const [open, setOpen] = useState(false)
@@ -21,21 +22,34 @@ export function FloatingBookingCta() {
     const gallery = document.getElementById("gallery")
     if (!gallery) return
 
-    const handleScroll = () => {
-      const rect = gallery.getBoundingClientRect()
-      const viewportHeight = window.innerHeight || document.documentElement.clientHeight
-      const hasEnteredGallery = rect.top < viewportHeight * 0.85
-      const hasExitedGallery = rect.bottom < viewportHeight * 0.25 || rect.top > viewportHeight
-      setVisible(hasEnteredGallery && !hasExitedGallery)
+    if ("IntersectionObserver" in window) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const [entry] = entries
+          setVisible(entry.isIntersecting)
+        },
+        { threshold: 0.2 },
+      )
+      observer.observe(gallery)
+      return () => observer.disconnect()
     }
 
-    handleScroll()
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    window.addEventListener("resize", handleScroll)
+    const handleFallback = () => {
+      const rect = gallery.getBoundingClientRect()
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight
+      const intersects =
+        rect.bottom > viewportHeight * 0.1 &&
+        rect.top < viewportHeight * 0.9
+      setVisible(intersects)
+    }
+
+    handleFallback()
+    window.addEventListener("scroll", handleFallback, { passive: true })
+    window.addEventListener("resize", handleFallback)
 
     return () => {
-      window.removeEventListener("scroll", handleScroll)
-      window.removeEventListener("resize", handleScroll)
+      window.removeEventListener("scroll", handleFallback)
+      window.removeEventListener("resize", handleFallback)
     }
   }, [])
 
@@ -61,9 +75,15 @@ export function FloatingBookingCta() {
       <Button
         type="button"
         onClick={() => setOpen(true)}
-        className={`fixed bottom-6 right-6 z-40 h-14 px-6 rounded-full bg-accent text-accent-foreground shadow-xl hover:shadow-2xl transition-all duration-200 focus-visible:ring-2 focus-visible:ring-offset-2 ${
-          visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
-        }`}
+        className={cn(
+          "fixed right-4 sm:right-6 z-40 h-12 sm:h-14 px-5 sm:px-6 rounded-full bg-accent text-accent-foreground shadow-xl hover:shadow-2xl transition-all duration-200 focus-visible:ring-2 focus-visible:ring-offset-2",
+          visible
+            ? "opacity-100 translate-y-0 pointer-events-auto"
+            : "opacity-0 translate-y-4 pointer-events-none",
+        )}
+        style={{
+          bottom: "calc(env(safe-area-inset-bottom, 0px) + 1.5rem)",
+        }}
       >
         Book with 5PM
       </Button>
