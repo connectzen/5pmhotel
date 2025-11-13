@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { CalendarHeart, Hotel } from "lucide-react"
 
@@ -16,6 +16,29 @@ import {
 
 export function FloatingBookingCta() {
   const [open, setOpen] = useState(false)
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    const gallery = document.getElementById("gallery")
+    if (!gallery) return
+
+    const handleScroll = () => {
+      const rect = gallery.getBoundingClientRect()
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight
+      const hasEnteredGallery = rect.top < viewportHeight * 0.85
+      const hasExitedGallery = rect.bottom < viewportHeight * 0.25 || rect.top > viewportHeight
+      setVisible(hasEnteredGallery && !hasExitedGallery)
+    }
+
+    handleScroll()
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    window.addEventListener("resize", handleScroll)
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll)
+      window.removeEventListener("resize", handleScroll)
+    }
+  }, [])
+
   const router = useRouter()
 
   const handleViewRooms = () => {
@@ -38,7 +61,9 @@ export function FloatingBookingCta() {
       <Button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-40 h-14 px-6 rounded-full bg-accent text-accent-foreground shadow-xl hover:shadow-2xl transition-all duration-200 focus-visible:ring-2 focus-visible:ring-offset-2"
+        className={`fixed bottom-6 right-6 z-40 h-14 px-6 rounded-full bg-accent text-accent-foreground shadow-xl hover:shadow-2xl transition-all duration-200 focus-visible:ring-2 focus-visible:ring-offset-2 ${
+          visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+        }`}
       >
         Book with 5PM
       </Button>
