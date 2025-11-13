@@ -4,7 +4,8 @@ import { useEffect, useState } from "react"
 import { collection, onSnapshot } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { ImageIcon, X, ChevronLeft, ChevronRight } from "lucide-react"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 
 type GalleryItem = { id: string; url: string; title?: string }
 
@@ -32,6 +33,8 @@ export function GalleryPreview() {
     setActiveIndex((activeIndex + 1) % items.length)
   }
 
+  const activeItem = activeIndex !== null ? items[activeIndex] : null
+
   return (
     <section id="gallery" className="py-16 px-4 bg-background">
       <div className="max-w-6xl mx-auto">
@@ -42,7 +45,7 @@ export function GalleryPreview() {
           </p>
         </div>
         {items.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {items.map((item) => (
               <button
                 key={item.id}
@@ -76,8 +79,11 @@ export function GalleryPreview() {
       </div>
 
       <Dialog open={activeIndex !== null} onOpenChange={(open) => !open && setActiveIndex(null)}>
-        <DialogContent className="max-w-5xl w-[92vw] bg-black/90 border-none p-0 md:p-4 text-white">
-          {activeIndex !== null && items[activeIndex] && (
+        <DialogContent className="max-w-6xl w-[95vw] md:w-[85vw] bg-black/90 border-none p-0 md:p-6 text-white">
+          <VisuallyHidden>
+            <DialogTitle>{activeItem?.title ?? "Gallery image preview"}</DialogTitle>
+          </VisuallyHidden>
+          {activeItem && (
             <div className="relative flex flex-col items-center gap-4">
               <button
                 onClick={() => setActiveIndex(null)}
@@ -86,11 +92,11 @@ export function GalleryPreview() {
               >
                 <X className="w-4 h-4" />
               </button>
-              <div className="relative w-full aspect-video max-h-[80vh] flex items-center justify-center bg-black/60 rounded-lg overflow-hidden">
+              <div className="relative w-full max-h-[85vh] flex items-center justify-center bg-black/60 rounded-lg overflow-hidden">
                 <img
-                  src={items[activeIndex].url}
-                  alt={items[activeIndex].title || "Gallery image"}
-                  className="max-h-full max-w-full object-contain mx-auto"
+                  src={activeItem.url}
+                  alt={activeItem.title || "Gallery image"}
+                  className="max-h-[80vh] max-w-full w-auto object-contain mx-auto"
                   loading="lazy"
                   decoding="async"
                 />
@@ -113,9 +119,9 @@ export function GalleryPreview() {
                   </>
                 )}
               </div>
-              {items[activeIndex].title && (
+              {activeItem.title && (
                 <p className="text-sm text-center text-muted-foreground/80 px-6">
-                  {items[activeIndex].title}
+                  {activeItem.title}
                 </p>
               )}
             </div>
