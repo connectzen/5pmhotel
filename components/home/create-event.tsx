@@ -267,7 +267,7 @@ export function CreateEvent() {
   }
 
   return (
-    <section className="py-16 px-4 bg-background">
+    <section id="plan-event" className="py-16 px-4 bg-background">
       <div className="max-w-6xl mx-auto">
         <h2 className="font-serif text-3xl font-bold text-primary mb-8">Plan Your Event</h2>
         <form className="bg-card border rounded-lg p-6 shadow-sm grid grid-cols-1 lg:grid-cols-3 gap-6" onSubmit={handleSubmit}>
