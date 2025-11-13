@@ -26,9 +26,17 @@ export function FloatingBookingCta() {
       const observer = new IntersectionObserver(
         (entries) => {
           const [entry] = entries
-          setVisible(entry.isIntersecting)
+          const rect = entry.boundingClientRect
+          const viewportHeight =
+            window.innerHeight || document.documentElement.clientHeight
+          const isInView =
+            rect.top < viewportHeight * 0.95 && rect.bottom > viewportHeight * 0.05
+          setVisible(isInView)
         },
-        { threshold: 0.2 },
+        {
+          threshold: [0, 0.25, 0.5, 0.75, 1],
+          rootMargin: "0px",
+        },
       )
       observer.observe(gallery)
       return () => observer.disconnect()
@@ -38,8 +46,7 @@ export function FloatingBookingCta() {
       const rect = gallery.getBoundingClientRect()
       const viewportHeight = window.innerHeight || document.documentElement.clientHeight
       const intersects =
-        rect.bottom > viewportHeight * 0.1 &&
-        rect.top < viewportHeight * 0.9
+        rect.top < viewportHeight * 0.95 && rect.bottom > viewportHeight * 0.05
       setVisible(intersects)
     }
 
