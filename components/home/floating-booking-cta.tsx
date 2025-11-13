@@ -22,41 +22,46 @@ export function FloatingBookingCta() {
     const gallery = document.getElementById("gallery")
     if (!gallery) return
 
+    const updateVisibility = () => {
+      const rect = gallery.getBoundingClientRect()
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight
+      const isVisible =
+        rect.bottom > viewportHeight * 0.1 && rect.top < viewportHeight * 0.9
+      setVisible(isVisible)
+    }
+
+    updateVisibility()
+
+    let observer: IntersectionObserver | undefined
     if ("IntersectionObserver" in window) {
-      const observer = new IntersectionObserver(
+      observer = new IntersectionObserver(
         (entries) => {
           const [entry] = entries
-          const rect = entry.boundingClientRect
-          const viewportHeight =
-            window.innerHeight || document.documentElement.clientHeight
-          const isInView =
-            rect.top < viewportHeight * 0.95 && rect.bottom > viewportHeight * 0.05
-          setVisible(isInView)
+          if (!entry) return
+          const { isIntersecting, intersectionRatio } = entry
+          if (isIntersecting || intersectionRatio > 0) {
+            setVisible(true)
+          } else {
+            updateVisibility()
+          }
         },
         {
-          threshold: [0, 0.25, 0.5, 0.75, 1],
-          rootMargin: "0px",
+          threshold: [0, 0.15, 0.4, 0.75, 1],
+          rootMargin: "0px 0px -10%",
         },
       )
       observer.observe(gallery)
-      return () => observer.disconnect()
     }
 
-    const handleFallback = () => {
-      const rect = gallery.getBoundingClientRect()
-      const viewportHeight = window.innerHeight || document.documentElement.clientHeight
-      const intersects =
-        rect.top < viewportHeight * 0.95 && rect.bottom > viewportHeight * 0.05
-      setVisible(intersects)
-    }
-
-    handleFallback()
-    window.addEventListener("scroll", handleFallback, { passive: true })
-    window.addEventListener("resize", handleFallback)
+    window.addEventListener("scroll", updateVisibility, { passive: true })
+    window.addEventListener("touchmove", updateVisibility, { passive: true })
+    window.addEventListener("resize", updateVisibility)
 
     return () => {
-      window.removeEventListener("scroll", handleFallback)
-      window.removeEventListener("resize", handleFallback)
+      observer?.disconnect()
+      window.removeEventListener("scroll", updateVisibility)
+      window.removeEventListener("touchmove", updateVisibility)
+      window.removeEventListener("resize", updateVisibility)
     }
   }, [])
 
