@@ -22,46 +22,47 @@ export function FloatingBookingCta() {
     const gallery = document.getElementById("gallery")
     if (!gallery) return
 
-    const updateVisibility = () => {
-      const rect = gallery.getBoundingClientRect()
+    let rafId: number | null = null
+
+    const computeVisibility = () => {
       const viewportHeight = window.innerHeight || document.documentElement.clientHeight
-      const isVisible =
-        rect.bottom > viewportHeight * 0.1 && rect.top < viewportHeight * 0.9
-      setVisible(isVisible)
+      const scrollY = window.scrollY || window.pageYOffset
+      const galleryTop = gallery.getBoundingClientRect().top + scrollY
+      const galleryHeight = gallery.offsetHeight
+
+      const enterPoint = galleryTop - viewportHeight * 0.2
+      const exitPoint = galleryTop + galleryHeight - viewportHeight * 0.4
+      const currentBottom = scrollY + viewportHeight
+
+      const withinBounds = currentBottom > enterPoint && scrollY < exitPoint
+      setVisible(withinBounds)
+      rafId = null
     }
 
-    updateVisibility()
-
-    let observer: IntersectionObserver | undefined
-    if ("IntersectionObserver" in window) {
-      observer = new IntersectionObserver(
-        (entries) => {
-          const [entry] = entries
-          if (!entry) return
-          const { isIntersecting, intersectionRatio } = entry
-          if (isIntersecting || intersectionRatio > 0) {
-            setVisible(true)
-          } else {
-            updateVisibility()
-          }
-        },
-        {
-          threshold: [0, 0.15, 0.4, 0.75, 1],
-          rootMargin: "0px 0px -10%",
-        },
-      )
-      observer.observe(gallery)
+    const scheduleCompute = () => {
+      if (rafId !== null) return
+      rafId = window.requestAnimationFrame(computeVisibility)
     }
 
-    window.addEventListener("scroll", updateVisibility, { passive: true })
-    window.addEventListener("touchmove", updateVisibility, { passive: true })
-    window.addEventListener("resize", updateVisibility)
+    // initial check after layout
+    scheduleCompute()
+    const onLoad = () => scheduleCompute()
+    window.addEventListener("load", onLoad)
+    window.addEventListener("scroll", scheduleCompute, { passive: true })
+    window.addEventListener("touchmove", scheduleCompute, { passive: true })
+    window.addEventListener("resize", scheduleCompute)
+    window.addEventListener("orientationchange", scheduleCompute)
 
     return () => {
-      observer?.disconnect()
-      window.removeEventListener("scroll", updateVisibility)
-      window.removeEventListener("touchmove", updateVisibility)
-      window.removeEventListener("resize", updateVisibility)
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId)
+        rafId = null
+      }
+      window.removeEventListener("load", onLoad)
+      window.removeEventListener("scroll", scheduleCompute)
+      window.removeEventListener("touchmove", scheduleCompute)
+      window.removeEventListener("resize", scheduleCompute)
+      window.removeEventListener("orientationchange", scheduleCompute)
     }
   }, [])
 
