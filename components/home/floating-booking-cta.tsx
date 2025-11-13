@@ -18,16 +18,23 @@ import { cn } from "@/lib/utils"
 export function FloatingBookingCta() {
   const [open, setOpen] = useState(false)
   const [visible, setVisible] = useState(false)
+  
   useEffect(() => {
-    const gallery = document.getElementById("gallery")
-    if (!gallery) return
-
     let rafId: number | null = null
+    let checkInterval: NodeJS.Timeout | null = null
 
     const computeVisibility = () => {
+      const gallery = document.getElementById("gallery")
+      if (!gallery) {
+        setVisible(false)
+        rafId = null
+        return
+      }
+
       const viewportHeight = window.innerHeight || document.documentElement.clientHeight
       const scrollY = window.scrollY || window.pageYOffset
-      const galleryTop = gallery.getBoundingClientRect().top + scrollY
+      const rect = gallery.getBoundingClientRect()
+      const galleryTop = rect.top + scrollY
       const galleryHeight = gallery.offsetHeight
 
       const enterPoint = galleryTop - viewportHeight * 0.2
@@ -44,27 +51,67 @@ export function FloatingBookingCta() {
       rafId = window.requestAnimationFrame(computeVisibility)
     }
 
-    // initial check after layout
+    // Initial check
     scheduleCompute()
+    
+    // Periodic check to catch gallery element if it loads late
+    checkInterval = setInterval(() => {
+      const gallery = document.getElementById("gallery")
+      if (gallery) {
+        scheduleCompute()
+      }
+    }, 500)
+
+    // Event listeners
     const onLoad = () => scheduleCompute()
     window.addEventListener("load", onLoad)
     window.addEventListener("scroll", scheduleCompute, { passive: true })
     window.addEventListener("touchmove", scheduleCompute, { passive: true })
     window.addEventListener("resize", scheduleCompute)
     window.addEventListener("orientationchange", scheduleCompute)
+    
+    // Also check on visibility change (when tab becomes active)
+    document.addEventListener("visibilitychange", scheduleCompute)
 
     return () => {
       if (rafId !== null) {
         window.cancelAnimationFrame(rafId)
         rafId = null
       }
+      if (checkInterval) {
+        clearInterval(checkInterval)
+      }
       window.removeEventListener("load", onLoad)
       window.removeEventListener("scroll", scheduleCompute)
       window.removeEventListener("touchmove", scheduleCompute)
       window.removeEventListener("resize", scheduleCompute)
       window.removeEventListener("orientationchange", scheduleCompute)
+      document.removeEventListener("visibilitychange", scheduleCompute)
     }
   }, [])
+  
+  // Recalculate visibility when dialog closes
+  useEffect(() => {
+    if (!open) {
+      // Small delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        const gallery = document.getElementById("gallery")
+        if (gallery) {
+          const viewportHeight = window.innerHeight || document.documentElement.clientHeight
+          const scrollY = window.scrollY || window.pageYOffset
+          const rect = gallery.getBoundingClientRect()
+          const galleryTop = rect.top + scrollY
+          const galleryHeight = gallery.offsetHeight
+          const enterPoint = galleryTop - viewportHeight * 0.2
+          const exitPoint = galleryTop + galleryHeight - viewportHeight * 0.4
+          const currentBottom = scrollY + viewportHeight
+          const withinBounds = currentBottom > enterPoint && scrollY < exitPoint
+          setVisible(withinBounds)
+        }
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [open])
 
   const router = useRouter()
 
