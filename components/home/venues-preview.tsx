@@ -71,31 +71,46 @@ export function VenuesPreview() {
                   {venue.operatingHours?.start && venue.operatingHours?.end && (
                     <p className="text-xs text-foreground/70 mb-2">Hours: {venue.operatingHours.start} – {venue.operatingHours.end}</p>
                   )}
-                  {pkgs.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {pkgs.map((p) => (
-                        <span key={p.id} className="text-xs px-2 py-1 rounded-full border border-border bg-background">
-                          {p.name}{typeof p.price === "number" ? ` • KES ${p.price}` : ""}{p.durationHours ? ` • ${p.durationHours}h` : ""}
-                        </span>
-                      ))}
-                      {extraCount > 0 && (
-                        <span className="text-xs px-2 py-1 rounded-full border border-dashed border-border bg-background/60">+{extraCount} more</span>
-                      )}
+                  {pkgs.length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-[11px] uppercase tracking-wide text-primary/80 mb-2 font-semibold">
+                        Packages
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {pkgs.map((p) => (
+                          <span
+                            key={p.id}
+                            className="text-xs font-semibold px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 shadow-sm"
+                          >
+                            {p.name}
+                            {typeof p.price === "number" ? ` • KES ${p.price}` : ""}
+                            {p.durationHours ? ` • ${p.durationHours}h` : ""}
+                          </span>
+                        ))}
+                        {extraCount > 0 && (
+                          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-primary/5 text-primary border border-dashed border-primary/40">
+                            +{extraCount} more
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No packages added yet</p>
                   )}
                   {layoutEntries.length > 0 && (
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {layoutEntries.map((layout) => (
-                        <div
-                          key={layout.key}
-                          className="flex items-center gap-1 rounded-md border border-border/60 bg-muted/50 px-2 py-1 text-xs text-muted-foreground"
-                        >
-                          <span className="font-semibold text-foreground">{layout.value}</span>
-                          <span>{layout.label}</span>
-                        </div>
-                      ))}
+                    <div className="mt-2">
+                      <p className="text-[11px] uppercase tracking-wide text-foreground/70 mb-2 font-semibold">
+                        Layout capacities
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {layoutEntries.map((layout) => (
+                          <div
+                            key={layout.key}
+                            className="flex items-center gap-1 rounded-md border border-border/70 bg-muted px-2 py-1 text-xs text-foreground/80"
+                          >
+                            <span className="font-semibold text-foreground">{layout.value}</span>
+                            <span>{layout.label}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                   <div className="mt-auto pt-4 flex justify-end">
