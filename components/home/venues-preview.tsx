@@ -86,8 +86,16 @@ export function VenuesPreview() {
                     <p className="text-sm text-muted-foreground">No packages added yet</p>
                   )}
                   {layoutEntries.length > 0 && (
-                    <div className="mt-4 text-xs text-muted-foreground overflow-x-auto whitespace-nowrap pr-1">
-                      <span>{layoutLine}</span>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {layoutEntries.map((layout) => (
+                        <div
+                          key={layout.key}
+                          className="flex items-center gap-1 rounded-md border border-border/60 bg-muted/50 px-2 py-1 text-xs text-muted-foreground"
+                        >
+                          <span className="font-semibold text-foreground">{layout.value}</span>
+                          <span>{layout.label}</span>
+                        </div>
+                      ))}
                     </div>
                   )}
                   <div className="mt-auto pt-4 flex justify-end">
