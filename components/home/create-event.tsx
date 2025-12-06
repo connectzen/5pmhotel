@@ -103,9 +103,6 @@ export function CreateEvent() {
   const [showCal, setShowCal] = useState(false)
   const calWrapperRef = useRef<HTMLDivElement | null>(null)
   const [guests, setGuests] = useState(50)
-  const [customerName, setCustomerName] = useState("")
-  const [customerEmail, setCustomerEmail] = useState("")
-  const [customerPhone, setCustomerPhone] = useState("")
   const [note, setNote] = useState("")
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -115,8 +112,6 @@ export function CreateEvent() {
     eventName?: boolean;
     venue?: boolean;
     date?: boolean;
-    customerName?: boolean;
-    customerEmail?: boolean;
   }>({})
   
   const CONTACT_PHONE = "+254-722-867-400"
@@ -188,8 +183,6 @@ export function CreateEvent() {
       eventName?: boolean;
       venue?: boolean;
       date?: boolean;
-      customerName?: boolean;
-      customerEmail?: boolean;
       startTime?: boolean;
       package?: boolean;
     } = {}
@@ -205,14 +198,6 @@ export function CreateEvent() {
     }
     if (!eventDate || !isValid(eventDate)) {
       newErrors.date = true
-      hasErrors = true
-    }
-    if (!customerName.trim()) {
-      newErrors.customerName = true
-      hasErrors = true
-    }
-    if (!customerEmail.trim() || !customerEmail.includes("@")) {
-      newErrors.customerEmail = true
       hasErrors = true
     }
     // Require package when venue has packages
@@ -254,9 +239,9 @@ export function CreateEvent() {
       venueName: selectedVenue.name,
       date: format(eventDate, "yyyy-MM-dd"),
       guests,
-      customerName,
-      customerEmail,
-      customerPhone,
+      customerName: "",
+      customerEmail: "",
+      customerPhone: "",
       note,
       status: "pending",
     }
@@ -291,9 +276,6 @@ export function CreateEvent() {
       setEventName("")
       setEventDate(undefined)
       setGuests(50)
-      setCustomerName("")
-      setCustomerEmail("")
-      setCustomerPhone("")
       setNote("")
       
       // Show success modal
@@ -455,41 +437,8 @@ export function CreateEvent() {
             </div>
           </div>
 
-          {/* Middle column: client details */}
+          {/* Middle column: removed - customer info collected in payment modal */}
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold mb-1">Your Name</label>
-              <input 
-                required 
-                value={customerName} 
-                onChange={(e) => {
-                  setCustomerName(e.target.value)
-                  if (errors.customerName) setErrors(prev => ({ ...prev, customerName: false }))
-                }} 
-                className={`w-full px-3 py-2 border rounded-lg bg-background text-foreground ${
-                  errors.customerName ? "border-red-500 border-2" : "border-border"
-                }`} 
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold mb-1">Email</label>
-              <input 
-                required 
-                type="email" 
-                value={customerEmail} 
-                onChange={(e) => {
-                  setCustomerEmail(e.target.value)
-                  if (errors.customerEmail) setErrors(prev => ({ ...prev, customerEmail: false }))
-                }} 
-                className={`w-full px-3 py-2 border rounded-lg bg-background text-foreground ${
-                  errors.customerEmail ? "border-red-500 border-2" : "border-border"
-                }`} 
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold mb-1">Phone</label>
-              <input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground" />
-            </div>
             <div className="lg:hidden">
               <button 
                 type="submit"
