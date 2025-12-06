@@ -15,17 +15,20 @@ import { collection, onSnapshot, query, where, getDocs, addDoc, serverTimestamp 
 import { db } from "@/lib/firebase"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { PaymentInfoModal } from "@/components/payment-info-modal"
 
 export default function BookingPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [step, setStep] = useState(1)
-  type RoomLite = { id: string; name: string; price: number; images?: string[]; quantity?: number; availableCount?: number }
+  type RoomLite = { id: string; name: string; price: number; images?: string[]; quantity?: number; availableCount?: number; paymentUrl?: string }
   const [rooms, setRooms] = useState<RoomLite[]>([])
   const [bookings, setBookings] = useState<any[]>([])
   const [selectedRooms, setSelectedRooms] = useState<Record<string, number>>({}) // room name -> count
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [pendingPaymentUrl, setPendingPaymentUrl] = useState<string | null>(null)
   const CONTACT_PHONE = "+254-722-867-400"
   
   useEffect(() => {
@@ -37,7 +40,8 @@ export default function BookingPage() {
           name: data.name, 
           price: Number(data.price ?? 0), 
           images: data.images || (data.image ? [data.image] : []),
-          quantity: Number(data.quantity ?? 1)
+          quantity: Number(data.quantity ?? 1),
+          paymentUrl: data.paymentUrl || ""
         } as RoomLite
       })
       setRooms(list)
@@ -331,6 +335,24 @@ export default function BookingPage() {
         const roomNames = Object.keys(selectedRooms).length > 0 
           ? Object.keys(selectedRooms) 
           : formData.roomType ? [formData.roomType] : []
+        
+        // Check if any selected room has a payment URL
+        let paymentUrl: string | null = null
+        for (const roomName of roomNames) {
+          const room = availableRooms.find(r => r.name === roomName)
+          if (room?.paymentUrl?.trim()) {
+            paymentUrl = room.paymentUrl.trim()
+            break // Use first payment URL found
+          }
+        }
+        
+        // If payment URL exists, show modal to collect name and phone
+        if (paymentUrl) {
+          setPendingPaymentUrl(paymentUrl)
+          setShowPaymentModal(true)
+          setIsSubmitting(false)
+          return
+        }
         
         // Create booking entries for each room selected
         for (const roomName of roomNames) {
@@ -855,7 +877,20 @@ export default function BookingPage() {
                     disabled={isSubmitting}
                     className="flex-1 bg-accent text-accent-foreground px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isSubmitting ? "Submitting..." : step === 3 ? "Confirm Booking" : "Continue"}
+                    {isSubmitting ? "Submitting..." : (() => {
+                      if (step === 3) {
+                        // Check if any selected room has a payment URL
+                        const roomNames = Object.keys(selectedRooms).length > 0 
+                          ? Object.keys(selectedRooms) 
+                          : formData.roomType ? [formData.roomType] : []
+                        const hasPaymentUrl = roomNames.some(roomName => {
+                          const room = availableRooms.find(r => r.name === roomName)
+                          return room?.paymentUrl?.trim()
+                        })
+                        return hasPaymentUrl ? "Proceed to Checkout" : "Confirm Booking"
+                      }
+                      return "Continue"
+                    })()}
                     {!isSubmitting && <ChevronRight size={20} />}
                   </button>
                 </div>
@@ -1001,6 +1036,17 @@ export default function BookingPage() {
           </div>
         </DialogContent>
       </Dialog>
+      
+      <PaymentInfoModal
+        isOpen={showPaymentModal}
+        onClose={() => {
+          setShowPaymentModal(false)
+          setPendingPaymentUrl(null)
+        }}
+        onProceed={handleProceedToPayment}
+        title="Booking Information"
+        showGuestInfo={true}
+      />
     </div>
   )
 }

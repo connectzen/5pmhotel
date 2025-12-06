@@ -101,7 +101,14 @@ export function EventsTable({
                   <td className="px-4 py-4 text-sm text-foreground">{event.guests}</td>
                   <td className="px-4 py-4 text-sm text-foreground">
                     <div>
-                      <div className="font-medium">{event.customerName}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="font-medium">{event.customerName}</div>
+                        {(event as any).paymentStatus === "external-pending" && (
+                          <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 text-xs">
+                            External Payment
+                          </Badge>
+                        )}
+                      </div>
                       <div className="text-xs text-muted-foreground">{event.customerEmail}</div>
                     </div>
                   </td>

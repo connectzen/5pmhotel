@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { PaymentInfoModal } from "@/components/payment-info-modal"
 
 type VenueData = {
   name: string
@@ -36,7 +37,7 @@ type VenueData = {
   status?: string
   // New fields from dashboard form
   operatingHours?: { start?: string; end?: string }
-  packages?: Array<{ id: string; name: string; description?: string; durationHours?: number; price?: number; cateringIncluded?: boolean }>
+  packages?: Array<{ id: string; name: string; description?: string; durationHours?: number; price?: number; cateringIncluded?: boolean; paymentUrl?: string }>
   capacities?: {
     theatre?: number
     classroom?: number
@@ -64,6 +65,8 @@ export default function VenueDetailsPage() {
   const [customerPhone, setCustomerPhone] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [pendingPaymentData, setPendingPaymentData] = useState<{ paymentUrl: string; eventData: any } | null>(null)
   // Package/time derived from venue
   const [selectedPackageId, setSelectedPackageId] = useState<string>("")
   const selectedPackage = useMemo(() => venue?.packages?.find(p => p.id === selectedPackageId), [venue, selectedPackageId])
@@ -128,6 +131,27 @@ export default function VenueDetailsPage() {
     return () => document.removeEventListener("mousedown", onDocClick)
   }, [showCal])
 
+  const handleProceedToPayment = async (customerName: string, customerPhone: string) => {
+    if (!pendingPaymentData) return
+    
+    try {
+      // Save event with customer info and external payment status
+      await addDoc(collection(db, "clientEvents"), {
+        ...pendingPaymentData.eventData,
+        customerName: customerName,
+        customerPhone: customerPhone,
+        paymentStatus: "external-pending",
+        paymentMethod: "external",
+      })
+      
+      // Redirect to payment URL
+      window.location.href = pendingPaymentData.paymentUrl
+    } catch (error) {
+      console.error("Failed to save event:", error)
+      throw error
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -155,6 +179,10 @@ export default function VenueDetailsPage() {
     setSubmitting(true)
     
     try {
+      // Check if selected package has a payment URL
+      const paymentUrl = selectedPackage?.paymentUrl?.trim() || null
+      
+      const trimmedSpecialRequests = specialRequests.trim()
       const eventData = {
         id: `CEV-${Date.now()}`,
         name: `${eventType} at ${venue?.name || "Venue"}`,
@@ -165,7 +193,7 @@ export default function VenueDetailsPage() {
         customerName: customerName.trim(),
         customerEmail: customerEmail.trim(),
         customerPhone: customerPhone.trim(),
-        note: specialRequests.trim() || undefined,
+        note: trimmedSpecialRequests || null,
         eventType: eventType,
         packageId: selectedPackage?.id ?? null,
         packageName: selectedPackage?.name ?? null,
@@ -175,7 +203,16 @@ export default function VenueDetailsPage() {
         endTime: computedEndTime || null,
         status: "pending",
         type: "venue-quote", // To differentiate from other bookings
+        paymentUrl: paymentUrl,
         createdAt: serverTimestamp(),
+      }
+      
+      // If payment URL exists, show modal to collect name and phone
+      if (paymentUrl) {
+        setPendingPaymentData({ paymentUrl, eventData })
+        setShowPaymentModal(true)
+        setSubmitting(false)
+        return
       }
       
       await addDoc(collection(db, "clientEvents"), eventData)
@@ -223,7 +260,10 @@ export default function VenueDetailsPage() {
           // Do not derive dummy pricing; show only real packages from dashboard
           pricing: undefined,
           operatingHours: data.operatingHours || undefined,
-          packages: data.packages || [],
+          packages: (data.packages || []).map((pkg: any) => ({
+            ...pkg,
+            paymentUrl: pkg.paymentUrl || "",
+          })),
           capacities: data.capacities || undefined,
         })
       } catch (error) {
@@ -485,7 +525,7 @@ export default function VenueDetailsPage() {
                     disabled={submitting}
                     className="w-full bg-accent text-accent-foreground py-3 rounded-lg font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {submitting ? "Submitting..." : "Request Quote"}
+                    {submitting ? "Submitting..." : (selectedPackage?.paymentUrl?.trim() ? "Proceed to Checkout" : "Request Quote")}
                   </button>
                 </form>
 
@@ -566,6 +606,17 @@ export default function VenueDetailsPage() {
           </div>
         </DialogContent>
       </Dialog>
+      
+      <PaymentInfoModal
+        isOpen={showPaymentModal}
+        onClose={() => {
+          setShowPaymentModal(false)
+          setPendingPaymentData(null)
+        }}
+        onProceed={handleProceedToPayment}
+        title="Booking Information"
+        showGuestInfo={true}
+      />
     </div>
   )
 }

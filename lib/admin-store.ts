@@ -24,6 +24,7 @@ export interface Room {
   amenities: string[]
   quantity: number
   images?: string[]
+  paymentUrl?: string
 }
 
 export interface Venue {
@@ -53,6 +54,7 @@ export interface Venue {
     durationHours?: number
     cateringIncluded?: boolean
     price?: number
+    paymentUrl?: string
   }>
 }
 

@@ -221,7 +221,16 @@ export function BookingsTable({ bookings, onSelectBooking, onStatusChange, onEdi
                   )}
                   {(booking as any).email || booking.id}
                 </td>
-                <td className="px-4 py-4 text-sm text-foreground">{booking.customer}</td>
+                <td className="px-4 py-4 text-sm text-foreground">
+                  <div className="flex items-center gap-2">
+                    {booking.customer}
+                    {(booking as any).paymentStatus === "external-pending" && (
+                      <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 text-xs">
+                        External Payment
+                      </Badge>
+                    )}
+                  </div>
+                </td>
                 <td className="px-4 py-4 text-sm text-foreground">
                   {(booking as any).phone ? (
                     <a 

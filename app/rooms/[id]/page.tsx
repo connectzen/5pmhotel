@@ -11,7 +11,8 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { ChevronLeft, ChevronRight, Star, Wifi, Tv, Coffee } from "lucide-react"
 import { db } from "@/lib/firebase"
-import { doc, getDoc } from "firebase/firestore"
+import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore"
+import { PaymentInfoModal } from "@/components/payment-info-modal"
 
 type RoomDoc = {
   name: string
@@ -21,6 +22,7 @@ type RoomDoc = {
   images?: string[]
   description?: string
   amenities?: string[]
+  paymentUrl?: string
 }
 
 export default function RoomDetailsPage() {
@@ -36,15 +38,16 @@ export default function RoomDetailsPage() {
         return
       }
       const data = d.data() as any
-      setRoom({
-        name: data.name,
-        price: Number(data.price ?? 0),
-        rating: Number(data.rating ?? 5),
-        capacity: Number(data.capacity ?? 1),
-        images: (data.images as string[]) ?? (data.image ? [data.image] : []),
-        description: data.description ?? "",
-        amenities: (data.amenities as string[]) ?? ["WiFi", "TV"],
-      })
+        setRoom({
+          name: data.name,
+          price: Number(data.price ?? 0),
+          rating: Number(data.rating ?? 5),
+          capacity: Number(data.capacity ?? 1),
+          images: (data.images as string[]) ?? (data.image ? [data.image] : []),
+          description: data.description ?? "",
+          amenities: (data.amenities as string[]) ?? ["WiFi", "TV"],
+          paymentUrl: data.paymentUrl || "",
+        })
     }
     load()
   }, [roomId])
@@ -60,6 +63,7 @@ export default function RoomDetailsPage() {
     checkIn: false,
     checkOut: false,
   })
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
   const today = React.useMemo(() => {
     const d = new Date()
     d.setHours(0,0,0,0)
@@ -121,6 +125,35 @@ export default function RoomDetailsPage() {
 
   const handleBookNowClick = () => {
     bookingFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
+
+  const handleProceedToPayment = async (customerName: string, customerPhone: string) => {
+    if (!room || !checkIn || !checkOut || !room.paymentUrl) return
+    
+    try {
+      // Save pending booking record
+      await addDoc(collection(db, "bookings"), {
+        customer: customerName,
+        phone: customerPhone,
+        room: room.name,
+        checkIn: format(checkIn, "yyyy-MM-dd"),
+        checkOut: format(checkOut, "yyyy-MM-dd"),
+        dates: `${format(checkIn, "dd/MM/yyyy")} - ${format(checkOut, "dd/MM/yyyy")}`,
+        guests: `${guests} guest(s)`,
+        status: "pending",
+        amount: room.price * nights,
+        paymentStatus: "external-pending",
+        paymentUrl: room.paymentUrl,
+        paymentMethod: "external",
+        createdAt: serverTimestamp(),
+      })
+      
+      // Redirect to payment URL
+      window.location.href = room.paymentUrl
+    } catch (error) {
+      console.error("Failed to save booking:", error)
+      throw error
+    }
   }
 
   return (
@@ -404,12 +437,16 @@ export default function RoomDetailsPage() {
                       return
                     }
                     
-                    // If validation passes, navigate to booking page
-                    window.location.href = `/booking?room=${encodeURIComponent(room.name)}&price=${room.price}&nights=${nights}${checkIn ? `&checkIn=${format(checkIn, "yyyy-MM-dd")}` : ""}${checkOut ? `&checkOut=${format(checkOut, "yyyy-MM-dd")}` : ""}&adults=${guests}&children=0`
+                    // If payment URL exists, show modal to collect info, otherwise proceed to booking page
+                    if (room.paymentUrl && room.paymentUrl.trim()) {
+                      setShowPaymentModal(true)
+                    } else {
+                      window.location.href = `/booking?room=${encodeURIComponent(room.name)}&price=${room.price}&nights=${nights}${checkIn ? `&checkIn=${format(checkIn, "yyyy-MM-dd")}` : ""}${checkOut ? `&checkOut=${format(checkOut, "yyyy-MM-dd")}` : ""}&adults=${guests}&children=0`
+                    }
                   }}
                   className="w-full bg-accent text-accent-foreground py-3 rounded-lg font-semibold hover:opacity-90 transition text-center"
                 >
-                  Proceed to Booking
+                  {room.paymentUrl && room.paymentUrl.trim() ? "Proceed to Checkout" : "Proceed to Booking"}
                 </button>
               </div>
             </div>
@@ -417,6 +454,14 @@ export default function RoomDetailsPage() {
         </div>
       </main>
       <Footer />
+      
+      <PaymentInfoModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onProceed={handleProceedToPayment}
+        title="Booking Information"
+        showGuestInfo={true}
+      />
     </div>
   )
 }

@@ -103,6 +103,7 @@ export function VenueFormModal({ venue, onSave, onClose }: VenueFormModalProps) 
       durationHours: 5,
       cateringIncluded: false,
       price: 0,
+      paymentUrl: "",
     }
     setFormData({ ...formData, packages: [...(formData.packages || []), pkg] })
     setLastAddedPackageId(pkg.id)
@@ -379,6 +380,19 @@ export function VenueFormModal({ venue, onSave, onClose }: VenueFormModalProps) 
                         onChange={(e) => updatePackage(pkg.id, { price: Number(e.target.value) })}
                         className="w-full min-w-[200px]"
                       />
+                    </div>
+                    <div className="md:col-span-12">
+                      <span className="block text-xs text-muted-foreground mb-1">Payment URL (PesaPal)</span>
+                      <Input
+                        type="url"
+                        value={pkg.paymentUrl || ""}
+                        onChange={(e) => updatePackage(pkg.id, { paymentUrl: e.target.value })}
+                        placeholder="https://pay.pesapal.com/..."
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Optional: External payment URL for this package
+                      </p>
                     </div>
                     <div className="md:col-span-12 flex justify-end">
                       <Button type="button" variant="outline" onClick={() => removePackage(pkg.id)} className="h-8 px-3">
