@@ -76,14 +76,14 @@ export function PaymentInfoModal({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription className="space-y-2">
-            <p>{finalDescription}</p>
+          <div className="space-y-2">
+            <DialogDescription>{finalDescription}</DialogDescription>
             {showGuestInfo && (
-              <p className="text-sm text-muted-foreground mt-2">
+              <DialogDescription className="text-sm text-muted-foreground mt-2">
                 <strong>Note:</strong> This is the information of the person making the booking. You will be directed to checkout where you can provide details about the guest(s) who will be staying at our hotel.
-              </p>
+              </DialogDescription>
             )}
-          </DialogDescription>
+          </div>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div>

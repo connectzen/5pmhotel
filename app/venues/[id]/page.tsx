@@ -161,16 +161,6 @@ export default function VenueDetailsPage() {
       return
     }
     
-    if (!customerName.trim()) {
-      alert("Please enter your name")
-      return
-    }
-    
-    if (!customerEmail.trim()) {
-      alert("Please enter your email")
-      return
-    }
-    
     if (!guests || Number(guests) < 1) {
       alert("Please enter the number of guests")
       return
@@ -190,9 +180,6 @@ export default function VenueDetailsPage() {
         venueName: venue?.name || "",
         date: format(eventDate, "yyyy-MM-dd"),
         guests: Number(guests),
-        customerName: customerName.trim(),
-        customerEmail: customerEmail.trim(),
-        customerPhone: customerPhone.trim(),
         note: trimmedSpecialRequests || null,
         eventType: eventType,
         packageId: selectedPackage?.id ?? null,
@@ -215,16 +202,20 @@ export default function VenueDetailsPage() {
         return
       }
       
-      await addDoc(collection(db, "clientEvents"), eventData)
+      // For non-payment URL cases, we still need customer info - show a simple alert
+      alert("Please contact us directly to complete your booking. Our team will reach out to you shortly.")
+      await addDoc(collection(db, "clientEvents"), {
+        ...eventData,
+        customerName: "Pending Contact",
+        customerEmail: "pending@contact.com",
+        customerPhone: "",
+      })
       
       // Reset form
       setEventDate(undefined)
       setEventType("Corporate Event")
       setGuests("")
       setSpecialRequests("")
-      setCustomerName("")
-      setCustomerEmail("")
-      setCustomerPhone("")
       
       // Show success modal
       setShowSuccessModal(true)
@@ -399,41 +390,6 @@ export default function VenueDetailsPage() {
                     </div>
                   )}
                   
-                  <div>
-                    <label className="block text-sm font-semibold text-foreground mb-2">Your Name</label>
-                    <input
-                      type="text"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="Enter your full name"
-                      required
-                      className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent bg-background"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-foreground mb-2">Email</label>
-                    <input
-                      type="email"
-                      value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
-                      placeholder="your.email@example.com"
-                      required
-                      className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent bg-background"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-foreground mb-2">Phone</label>
-                    <input
-                      type="tel"
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      placeholder="+254..."
-                      className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent bg-background"
-                    />
-                  </div>
-
                   <div>
                     <label className="block text-sm font-semibold text-foreground mb-2">Event Type</label>
                     <select
