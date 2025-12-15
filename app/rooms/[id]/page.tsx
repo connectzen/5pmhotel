@@ -45,7 +45,6 @@ const computeBaseRate = (ratePlans?: any) => {
     })
   })
   return Number.isFinite(min) ? min : 0
->>>>>>> 8311dcb (Update booking, rooms, venues, and admin components)
 }
 
 export default function RoomDetailsPage() {
