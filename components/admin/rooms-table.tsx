@@ -32,7 +32,9 @@ export function RoomsTable({ rooms, onEdit, onDelete, busyId }: RoomsTableProps)
               <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-semibold text-foreground">Capacity</th>
               <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-semibold text-foreground">Quantity</th>
               <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-semibold text-foreground">Availability</th>
-              <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-semibold text-foreground">Price (KES)</th>
+              <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-semibold text-foreground">
+                Bed Only (KES)
+              </th>
               <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-semibold text-foreground">Amenities</th>
               <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-semibold text-foreground">Status</th>
               <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-semibold text-foreground">Actions</th>
@@ -90,7 +92,29 @@ export function RoomsTable({ rooms, onEdit, onDelete, busyId }: RoomsTableProps)
                     </Badge>
                   )}
                 </td>
-                <td className="px-3 sm:px-6 py-4 text-xs sm:text-sm font-medium text-foreground">{(room.price ?? 0).toLocaleString()}</td>
+                <td className="px-3 sm:px-6 py-4">
+                  {(() => {
+                    const ratePlans = (room as any).ratePlans
+                    const bedOnly = ratePlans?.bedOnly
+                    const bedOnlyPrice =
+                      typeof bedOnly?.amount === "number" && bedOnly.amount > 0 ? bedOnly.amount : room.price ?? 0
+                    const hasOtherPlans =
+                      ratePlans &&
+                      Object.keys(ratePlans).some((key) => key !== "bedOnly" && ratePlans[key]?.amount > 0)
+                    return (
+                      <div className="flex flex-col gap-0.5 text-xs sm:text-sm">
+                        <span className="font-medium text-foreground">
+                          {bedOnlyPrice.toLocaleString()}
+                        </span>
+                        {hasOtherPlans && (
+                          <span className="text-[11px] sm:text-xs text-muted-foreground">
+                            Other plans available
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })()}
+                </td>
                 <td className="px-3 sm:px-6 py-4 text-xs sm:text-sm">
                   <div className="flex flex-wrap gap-1">
                     {(room.amenities || []).slice(0, 3).map((amenity) => (

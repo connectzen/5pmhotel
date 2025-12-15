@@ -6,7 +6,7 @@ import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import type { Room } from "@/lib/admin-store"
+import type { RatePlanKey, RatePlanPrices, RatePlans, Room } from "@/lib/admin-store"
 import { storage } from "@/lib/firebase"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { X, UploadCloud } from "lucide-react"
@@ -21,22 +21,73 @@ interface RoomFormModalProps {
 
 const amenitiesOptions = ["WiFi", "AC", "TV", "Mini Bar", "Jacuzzi", "Balcony", "Safe", "Hairdryer"]
 
+const ratePlanDefinitions: Array<{ key: RatePlanKey; label: string; note?: string }> = [
+  { key: "bedOnly", label: "Bed Only" },
+  { key: "bedBreakfast", label: "Bed & Breakfast" },
+  { key: "bedWine", label: "Bed & Wine", note: "Twin includes 1 bottle" },
+  { key: "bedMeal", label: "Bed & Meal" },
+  { key: "halfBoard", label: "Half Board" },
+  { key: "fullBoard", label: "Full Board" },
+]
+
+const getEmptyRatePlans = (): RatePlans => ({
+  bedOnly: {},
+  bedBreakfast: {},
+  bedWine: {},
+  bedMeal: {},
+  halfBoard: {},
+  fullBoard: {},
+})
+
+const computeBaseRate = (ratePlans?: RatePlans) => {
+  if (!ratePlans) return undefined
+  // Prefer Bed Only if present
+  const bedOnlyAmount = ratePlans.bedOnly?.amount
+  if (typeof bedOnlyAmount === "number" && bedOnlyAmount > 0) {
+    return bedOnlyAmount
+  }
+
+  let min = Number.POSITIVE_INFINITY
+  Object.values(ratePlans).forEach((plan) => {
+    if (!plan) return
+    // New structure: use single `amount` per plan
+    if (typeof plan.amount === "number" && plan.amount > 0) {
+      min = Math.min(min, plan.amount)
+    }
+    // Backwards compatibility: consider legacy per-occupancy fields if still present
+    ;(["single", "double", "twin"] as const).forEach((occ) => {
+      const legacy = plan[occ]
+      if (typeof legacy === "number" && legacy > 0) {
+        min = Math.min(min, legacy)
+      }
+    })
+  })
+  return Number.isFinite(min) ? min : undefined
+}
+
 export function RoomFormModal({ room, onSave, onClose, saving }: RoomFormModalProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [uploading, setUploading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formData, setFormData] = useState<Room>(
-    room || {
-      id: "",
-      name: "",
-      capacity: 2,
-      price: 0,
-      status: "active",
-      amenities: [],
-      images: [],
-      quantity: 1,
-      paymentUrl: "",
-    },
+    room
+      ? {
+          ...room,
+          ratePlans: room.ratePlans ?? getEmptyRatePlans(),
+          paymentUrl: room.paymentUrl ?? "",
+        }
+      : {
+          id: "",
+          name: "",
+          capacity: 2,
+          price: 0,
+          status: "active",
+          amenities: [],
+          images: [],
+          quantity: 1,
+          paymentUrl: "",
+          ratePlans: getEmptyRatePlans(),
+        },
   )
 
   const handleAmenityToggle = (amenity: string) => {
@@ -55,8 +106,13 @@ export function RoomFormModal({ room, onSave, onClose, saving }: RoomFormModalPr
       newErrors.name = "Room name is required"
     }
     
-    if (!formData.price || formData.price <= 0) {
-      newErrors.price = "Price must be greater than 0"
+    const derivedBaseRate = computeBaseRate(formData.ratePlans)
+    const effectivePrice = derivedBaseRate ?? formData.price
+    if (!effectivePrice || effectivePrice <= 0) {
+      newErrors.ratePlans = "Add at least one rate to continue"
+    } else {
+      // keep price in sync for listings
+      setFormData((prev) => ({ ...prev, price: effectivePrice }))
     }
     
     if (!formData.images || formData.images.length === 0) {
@@ -72,7 +128,13 @@ export function RoomFormModal({ room, onSave, onClose, saving }: RoomFormModalPr
     if (!validateForm()) {
       return
     }
-    onSave(formData)
+    const derivedBaseRate = computeBaseRate(formData.ratePlans)
+    const payload = {
+      ...formData,
+      price: derivedBaseRate ?? formData.price ?? 0,
+      ratePlans: formData.ratePlans ?? getEmptyRatePlans(),
+    }
+    onSave(payload as Room)
   }
 
   const handleFieldChange = (field: keyof Room, value: any) => {
@@ -82,6 +144,31 @@ export function RoomFormModal({ room, onSave, onClose, saving }: RoomFormModalPr
       setErrors({ ...errors, [field]: "" })
     }
   }
+
+  const handleRateChange = (planKey: RatePlanKey, value: string) => {
+    const numericValue = value === "" ? undefined : Number.parseInt(value)
+    setFormData((prev) => {
+      const currentPlans = prev.ratePlans ?? getEmptyRatePlans()
+      const updatedPlan = { ...(currentPlans[planKey] ?? {}) }
+      updatedPlan.amount = Number.isFinite(numericValue as number) ? numericValue : undefined
+      const updatedRatePlans: RatePlans = {
+        ...currentPlans,
+        [planKey]: updatedPlan,
+      }
+      const derivedBaseRate = computeBaseRate(updatedRatePlans)
+      const nextPrice = derivedBaseRate ?? prev.price ?? 0
+      return {
+        ...prev,
+        ratePlans: updatedRatePlans,
+        price: nextPrice,
+      }
+    })
+    if (errors.ratePlans) {
+      setErrors({ ...errors, ratePlans: "" })
+    }
+  }
+
+  const baseRate = computeBaseRate(formData.ratePlans)
 
   const handleImages = async (files: FileList | null) => {
     if (!files || files.length === 0) return
@@ -131,7 +218,7 @@ export function RoomFormModal({ room, onSave, onClose, saving }: RoomFormModalPr
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-2">Capacity</label>
                 <Input
@@ -141,20 +228,6 @@ export function RoomFormModal({ room, onSave, onClose, saving }: RoomFormModalPr
                     handleFieldChange("capacity", e.target.value === "" ? undefined : Number.parseInt(e.target.value))
                   }
                   min="1"
-                />
-              </div>
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${errors.price ? "text-red-600" : ""}`}>
-                  Price (KES) {errors.price && <span className="text-xs">({errors.price})</span>}
-                </label>
-                <Input
-                  type="number"
-                  value={formData.price ?? ""}
-                  onChange={(e) =>
-                    handleFieldChange("price", e.target.value === "" ? undefined : Number.parseInt(e.target.value))
-                  }
-                  min="0"
-                  className={errors.price ? "border-red-500 focus:ring-red-500" : ""}
                 />
               </div>
               <div>
@@ -171,6 +244,48 @@ export function RoomFormModal({ room, onSave, onClose, saving }: RoomFormModalPr
                   min="0"
                 />
               </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className={`block text-sm font-medium ${errors.ratePlans ? "text-red-600" : ""}`}>
+                  Rate Plans (KES)
+                </label>
+                {errors.ratePlans && <span className="text-xs text-red-600">{errors.ratePlans}</span>}
+              </div>
+              <div className="border border-border rounded-lg overflow-hidden">
+                {ratePlanDefinitions.map((plan, idx) => (
+                  <div
+                    key={plan.key}
+                    className={`flex items-center justify-between gap-4 px-3 py-3 text-sm ${
+                      idx !== ratePlanDefinitions.length - 1 ? "border-b border-border" : ""
+                    }`}
+                  >
+                    <div className="flex flex-col gap-1">
+                      <span className="font-medium text-foreground">{plan.label}</span>
+                      {plan.note && <span className="text-xs text-muted-foreground">{plan.note}</span>}
+                    </div>
+                    <div className="w-32">
+                      <Input
+                        type="number"
+                        min="0"
+                        value={formData.ratePlans?.[plan.key]?.amount ?? ""}
+                        onChange={(e) => handleRateChange(plan.key, e.target.value)}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Display price uses the Bed Only rate if set, otherwise the lowest plan rate.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Display Price (auto)</label>
+              <Input value={baseRate ?? formData.price ?? ""} readOnly className="bg-muted" />
+              <p className="text-xs text-muted-foreground mt-1">Used in listings and filters.</p>
             </div>
 
             <div>

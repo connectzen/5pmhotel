@@ -20,6 +20,31 @@ type RoomDoc = {
   description?: string
 }
 
+const computeBaseRate = (ratePlans?: any) => {
+  if (!ratePlans) return 0
+  // Prefer Bed Only plan if present
+  const bedOnly = (ratePlans as any).bedOnly
+  if (bedOnly && typeof bedOnly.amount === "number" && bedOnly.amount > 0) {
+    return bedOnly.amount
+  }
+
+  let min = Number.POSITIVE_INFINITY
+  Object.values(ratePlans as any).forEach((plan: any) => {
+    if (!plan) return
+    if (typeof plan.amount === "number" && plan.amount > 0) {
+      min = Math.min(min, plan.amount)
+    }
+    // Backwards compatibility for legacy docs
+    ;["single", "double", "twin"].forEach((occ) => {
+      const value = plan?.[occ]
+      if (typeof value === "number" && value > 0) {
+        min = Math.min(min, value)
+      }
+    })
+  })
+  return Number.isFinite(min) ? min : 0
+}
+
 export default function RoomsPage() {
   const [rooms, setRooms] = useState<RoomDoc[]>([])
   const [selectedType, setSelectedType] = useState("all")
@@ -30,12 +55,13 @@ export default function RoomsPage() {
     const unsub = onSnapshot(collection(db, "rooms"), (snap) => {
       const list = snap.docs.map((d) => {
         const data = d.data() as any
+        const baseRate = computeBaseRate(data.ratePlans)
         return {
           id: d.id,
           name: data.name,
           image: data.image,
           images: data.images,
-          price: Number(data.price ?? 0),
+          price: Number(data.price ?? baseRate ?? 0),
           capacity: Number(data.capacity ?? 1),
           rating: Number(data.rating ?? 5),
           type: data.type ?? "room",

@@ -21,7 +21,23 @@ export default function BookingPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [step, setStep] = useState(1)
-  type RoomLite = { id: string; name: string; price: number; images?: string[]; quantity?: number; availableCount?: number; paymentUrl?: string }
+  type RoomLite = {
+    id: string
+    name: string
+    price: number
+    images?: string[]
+    quantity?: number
+    availableCount?: number
+    /**
+     * Optional external payment URL for this room (e.g. Pesapal).
+     * When present, checkout will go through the external provider.
+     */
+    paymentUrl?: string
+    /**
+     * Optional per-plan pricing configuration used to derive package rates.
+     */
+    ratePlans?: any
+  }
   const [rooms, setRooms] = useState<RoomLite[]>([])
   const [bookings, setBookings] = useState<any[]>([])
   const [selectedRooms, setSelectedRooms] = useState<Record<string, number>>({}) // room name -> count
@@ -30,15 +46,78 @@ export default function BookingPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [pendingPaymentUrl, setPendingPaymentUrl] = useState<string | null>(null)
   const CONTACT_PHONE = "+254-722-867-400"
+  const planOptions: Array<{ key: string; label: string }> = [
+    { key: "bedOnly", label: "Bed Only" },
+    { key: "bedBreakfast", label: "Bed & Breakfast" },
+    { key: "bedWine", label: "Bed & Wine" },
+    { key: "bedMeal", label: "Bed & Meal" },
+    { key: "halfBoard", label: "Half Board" },
+    { key: "fullBoard", label: "Full Board" },
+  ]
+  const [selectedPlan, setSelectedPlan] = useState<string>("bedOnly")
+  const roomIdFromDetails = searchParams.get("roomId")
+  const fromSource = searchParams.get("from")
+  const cameFromRoomDetails = fromSource === "details" && !!roomIdFromDetails
+
+  const computeBaseRate = (ratePlans?: any) => {
+    if (!ratePlans) return 0
+    const bedOnly = ratePlans?.bedOnly
+    if (bedOnly && typeof bedOnly.amount === "number" && bedOnly.amount > 0) {
+      return bedOnly.amount
+    }
+    let min = Number.POSITIVE_INFINITY
+    Object.values(ratePlans as any).forEach((plan: any) => {
+      if (!plan) return
+      if (typeof plan.amount === "number" && plan.amount > 0) {
+        min = Math.min(min, plan.amount)
+      }
+      ;["single", "double", "twin"].forEach((occ) => {
+        const value = plan?.[occ]
+        if (typeof value === "number" && value > 0) {
+          min = Math.min(min, value)
+        }
+      })
+    })
+    return Number.isFinite(min) ? min : 0
+  }
+
+  const getPlanPrice = (ratePlans: any, planKey: string) => {
+    if (!ratePlans) return 0
+    const plan = ratePlans[planKey]
+    if (plan && typeof plan.amount === "number" && plan.amount > 0) return plan.amount
+    if (planKey !== "bedOnly" && ratePlans.bedOnly && typeof ratePlans.bedOnly.amount === "number" && ratePlans.bedOnly.amount > 0) {
+      return ratePlans.bedOnly.amount
+    }
+    return computeBaseRate(ratePlans)
+  }
+
+  const getPlanLabel = (key: string) => planOptions.find((p) => p.key === key)?.label ?? "Selected Plan"
+
+  const availablePlanOptions = useMemo(() => {
+    return planOptions.filter((opt) => {
+      if (opt.key === "bedOnly") return true
+      return rooms.some((r) => {
+        const amount = r.ratePlans?.[opt.key]?.amount
+        return typeof amount === "number" && amount > 0
+      })
+    })
+  }, [rooms, planOptions])
+
+  const hasSelectedRooms = useMemo(
+    () => Object.values(selectedRooms).some((count) => count > 0),
+    [selectedRooms],
+  )
   
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "rooms"), (snap) => {
       const list = snap.docs.map((d) => {
         const data = d.data() as any
+        const baseRate = computeBaseRate(data.ratePlans)
         return { 
           id: d.id, 
           name: data.name, 
-          price: Number(data.price ?? 0), 
+          price: Number(data.price ?? baseRate ?? 0), 
+          ratePlans: data.ratePlans ?? null,
           images: data.images || (data.image ? [data.image] : []),
           quantity: Number(data.quantity ?? 1),
           paymentUrl: data.paymentUrl || ""
@@ -56,11 +135,11 @@ export default function BookingPage() {
     })
     return () => unsub()
   }, [])
-  const roomPrices = useMemo<Record<string, number>>(() => {
+  const roomPlanPrices = useMemo<Record<string, number>>(() => {
     const map: Record<string, number> = {}
-    rooms.forEach((r) => (map[r.name] = r.price))
+    rooms.forEach((r) => (map[r.name] = getPlanPrice(r.ratePlans, selectedPlan)))
     return map
-  }, [rooms])
+  }, [rooms, selectedPlan])
   const roomImages = useMemo<Record<string, string[]>>(() => {
     const map: Record<string, string[]> = {}
     rooms.forEach((r) => (map[r.name] = r.images || []))
@@ -70,18 +149,19 @@ export default function BookingPage() {
   // If current selection is not in backend rooms, default to first available
   useEffect(() => {
     if (rooms.length === 0) return
-    if (!roomPrices[formData.roomType]) {
+    if (!roomPlanPrices[formData.roomType]) {
       const first = rooms[0]
-      const subtotal = first.price * formData.nights
+      const price = getPlanPrice(first.ratePlans, selectedPlan)
+      const subtotal = price * formData.nights
       setFormData((prev) => ({
         ...prev,
         roomType: first.name,
-        pricePerNight: first.price,
+        pricePerNight: price,
         subtotal,
         total: subtotal,
       }))
     }
-  }, [rooms])
+  }, [rooms, roomPlanPrices, selectedPlan])
   const [formData, setFormData] = useState({
     // Step 1: Booking Summary
     roomType: "Deluxe Single",
@@ -122,6 +202,7 @@ export default function BookingPage() {
   React.useEffect(() => {
     const room = searchParams.get("room")
     const price = searchParams.get("price")
+    const plan = searchParams.get("plan")
     const nightsParam = searchParams.get("nights")
     const qCheckIn = searchParams.get("checkIn")
     const qCheckOut = searchParams.get("checkOut")
@@ -129,8 +210,12 @@ export default function BookingPage() {
     const qAdults = searchParams.get("adults")
     const qChildren = searchParams.get("children")
 
+    if (plan) {
+      setSelectedPlan(plan)
+    }
+
     setFormData((prev) => {
-      const derivedPrice = room && roomPrices[room] ? roomPrices[room] : prev.pricePerNight
+      const derivedPrice = room && roomPlanPrices[room] ? roomPlanPrices[room] : prev.pricePerNight
       const pricePerNight = price ? Number(price) : derivedPrice
       const nights = nightsParam ? Number(nightsParam) : prev.nights
       const subtotal = pricePerNight * nights
@@ -164,7 +249,21 @@ export default function BookingPage() {
       // Skip to Step 2 when coming from room details page
       setStep(2)
     }
-  }, [searchParams, roomPrices])
+  }, [searchParams, roomPlanPrices])
+
+  // Recalculate price when selected plan changes
+  useEffect(() => {
+    if (!formData.roomType) return
+    const matchingRoom = rooms.find((r) => r.name === formData.roomType)
+    const pricePerNight = matchingRoom ? getPlanPrice(matchingRoom.ratePlans, selectedPlan) : formData.pricePerNight
+    const subtotal = pricePerNight * formData.nights
+    setFormData((prev) => ({
+      ...prev,
+      pricePerNight,
+      subtotal,
+      total: subtotal,
+    }))
+  }, [selectedPlan, rooms])
 
   // Keep local calendar state in sync with string dates
   React.useEffect(() => {
@@ -180,7 +279,11 @@ export default function BookingPage() {
   // Calculate available rooms based on dates
   const availableRooms = useMemo(() => {
     if (!checkInDate || !checkOutDate || !isValid(checkInDate) || !isValid(checkOutDate)) {
-      return rooms.map(r => ({ ...r, availableCount: r.quantity ?? 1 }))
+      return rooms.map(r => ({
+        ...r,
+        availableCount: r.quantity ?? 1,
+        price: getPlanPrice(r.ratePlans, selectedPlan),
+      }))
     }
     
     return rooms.map((room) => {
@@ -213,12 +316,12 @@ export default function BookingPage() {
       const bookedCount = conflictingBookings.length
       const availableCount = Math.max(0, quantity - bookedCount)
       
-      return { ...room, availableCount }
+      return { ...room, availableCount, price: getPlanPrice(room.ratePlans, selectedPlan) }
     })
-  }, [rooms, bookings, checkInDate, checkOutDate])
+  }, [rooms, bookings, checkInDate, checkOutDate, selectedPlan])
 
   const handleRoomChange = (value: string) => {
-    const pricePerNight = roomPrices[value] ?? formData.pricePerNight
+    const pricePerNight = roomPlanPrices[value] ?? formData.pricePerNight
     const nights = formData.nights
     const subtotal = pricePerNight * nights
     setFormData((prev) => ({
@@ -253,11 +356,13 @@ export default function BookingPage() {
 
   // Calculate total based on selected rooms
   const calculatedTotal = useMemo(() => {
-    return Object.entries(selectedRooms).reduce((sum, [roomName, count]) => {
+    const roomsTotal = Object.entries(selectedRooms).reduce((sum, [roomName, count]) => {
       const room = availableRooms.find(r => r.name === roomName)
       return sum + (room ? room.price * formData.nights * count : 0)
     }, 0)
-  }, [selectedRooms, availableRooms, formData.nights])
+    if (roomsTotal > 0) return roomsTotal
+    return formData.pricePerNight * formData.nights
+  }, [selectedRooms, availableRooms, formData.nights, formData.pricePerNight])
 
   // Keep nights in sync and reset room selection when dates change
   React.useEffect(() => {
@@ -306,27 +411,14 @@ export default function BookingPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (step === 1) {
-      // Check if at least one room is selected
-      const totalSelectedRooms = Object.values(selectedRooms).reduce((sum, count) => sum + count, 0)
-      if (totalSelectedRooms === 0) {
-        toast({ title: "Please select at least one room", variant: "destructive" })
-        return
-      }
-      if (!checkInDate || !checkOutDate || !isValid(checkInDate) || !isValid(checkOutDate)) {
-        toast({ title: "Please select check-in and check-out dates", variant: "destructive" })
-        return
-      }
-      // Proceed to step 2
-      setStep(step + 1)
-    } else if (step === 2) {
       // Validate guest details
       if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.email.trim() || !formData.phone.trim()) {
         toast({ title: "Please fill in all required guest information", variant: "destructive" })
         return
       }
-      // Proceed to step 3
-      setStep(step + 1)
-    } else if (step === 3) {
+      // Proceed to review
+      setStep(2)
+    } else if (step === 2) {
       // Handle final submission - save booking and show success modal
       setIsSubmitting(true)
       
@@ -366,6 +458,7 @@ export default function BookingPage() {
             email: formData.email,
             phone: formData.phone,
             room: roomName,
+            plan: selectedPlan,
             checkIn: formData.checkIn,
             checkOut: formData.checkOut,
             dates: `${formatDate(parseISO(formData.checkIn), "dd/MM/yyyy")} - ${formatDate(parseISO(formData.checkOut), "dd/MM/yyyy")}`,
@@ -409,6 +502,16 @@ export default function BookingPage() {
   }
 
   const handleBack = () => {
+    if (step === 1 && cameFromRoomDetails) {
+      if (window.history.length > 1) {
+        router.back()
+      } else if (roomIdFromDetails) {
+        router.push(`/rooms/${roomIdFromDetails}`)
+      } else {
+        router.push("/rooms")
+      }
+      return
+    }
     if (step > 1) {
       setStep(step - 1)
     }
@@ -562,6 +665,38 @@ export default function BookingPage() {
                         <p className="text-sm text-foreground/70 mb-1">Number of Nights</p>
                         <p className="font-semibold text-lg">{formData.nights} {formData.nights === 1 ? "night" : "nights"}</p>
                       </div>
+
+                      {/* Plan selector - only show when at least one room is selected */}
+                      {hasSelectedRooms && (
+                        <div className="p-4 bg-muted rounded-lg">
+                          <p className="text-sm text-foreground/70 mb-2">Choose your package</p>
+                          <div className="flex flex-wrap gap-2">
+                            {availablePlanOptions.map((plan) => {
+                              const isActive = selectedPlan === plan.key
+                              // show plan price preview based on first room that has this plan (fallback to computeBaseRate)
+                              const sampleRoom = rooms.find((r) => r.ratePlans?.[plan.key]?.amount > 0) || rooms[0]
+                              const samplePrice = sampleRoom ? getPlanPrice(sampleRoom.ratePlans, plan.key) : undefined
+                              return (
+                                <button
+                                  key={plan.key}
+                                  type="button"
+                                  onClick={() => setSelectedPlan(plan.key)}
+                                  className={`px-3 py-2 rounded-full border text-xs sm:text-sm transition-all ${
+                                    isActive
+                                      ? "bg-accent text-accent-foreground border-accent shadow-sm"
+                                      : "bg-white text-foreground border-border hover:border-accent/60"
+                                  }`}
+                                >
+                                  <span className="font-medium">{plan.label}</span>
+                                  {samplePrice ? (
+                                    <span className="ml-2 text-[11px] sm:text-xs opacity-80">KSh {samplePrice}</span>
+                                  ) : null}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
                       
                       {/* Available Rooms Selection */}
                       {checkInDate && checkOutDate && isValid(checkInDate) && isValid(checkOutDate) ? (
@@ -576,7 +711,9 @@ export default function BookingPage() {
                                   <div className="flex items-start justify-between mb-3">
                                     <div className="flex-1">
                                       <h4 className="font-semibold text-lg text-primary mb-1">{room.name}</h4>
-                                      <p className="text-sm text-foreground/70 mb-2">KSh {room.price} per night</p>
+                                      <p className="text-sm text-foreground/70 mb-2">
+                                        KSh {room.price} per night • {getPlanLabel(selectedPlan)}
+                                      </p>
                                       <p className={`text-sm font-medium ${isAvailable ? 'text-green-600' : 'text-red-600'}`}>
                                         {isAvailable ? `${room.availableCount} available` : 'Not available'}
                                       </p>
@@ -634,9 +771,12 @@ export default function BookingPage() {
                           const roomTotal = room ? room.price * formData.nights * count : 0
                           return (
                             <div key={roomName} className="flex justify-between text-sm">
-                              <span className="text-foreground/70">
-                                {roomName} × {count} {count === 1 ? 'room' : 'rooms'}
-                              </span>
+                              <div className="flex flex-col">
+                                <span className="text-foreground/70">
+                                  {roomName} × {count} {count === 1 ? 'room' : 'rooms'}
+                                </span>
+                                <span className="text-[11px] text-muted-foreground">{getPlanLabel(selectedPlan)}</span>
+                              </div>
                               <span className="font-semibold">KSh {roomTotal.toLocaleString()}</span>
                             </div>
                           )
@@ -908,15 +1048,19 @@ export default function BookingPage() {
                     <div>
                       <p className="text-sm text-foreground/70 mb-2">Selected Rooms</p>
                       {Object.entries(selectedRooms).map(([roomName, count]) => (
-                        <p key={roomName} className="font-semibold mb-1">
-                          {roomName} × {count} {count === 1 ? "room" : "rooms"}
-                        </p>
+                        <div key={roomName} className="mb-1">
+                          <p className="font-semibold">
+                            {roomName} × {count} {count === 1 ? "room" : "rooms"}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">{getPlanLabel(selectedPlan)}</p>
+                        </div>
                       ))}
                     </div>
                   ) : formData.roomType ? (
                     <div>
                       <p className="text-sm text-foreground/70 mb-1">Rooms</p>
                       <p className="font-semibold">{formData.roomType} × 1 room</p>
+                      <p className="text-[11px] text-muted-foreground">{getPlanLabel(selectedPlan)}</p>
                     </div>
                   ) : (
                     <div>
@@ -950,9 +1094,12 @@ export default function BookingPage() {
                     const roomTotal = room ? room.price * formData.nights * count : 0
                     return (
                       <div key={roomName} className="flex justify-between text-sm">
-                        <span className="text-foreground/70">
-                          {roomName} × {count}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className="text-foreground/70">
+                            {roomName} × {count}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground">{getPlanLabel(selectedPlan)}</span>
+                        </div>
                         <span className="font-semibold">KSh {roomTotal.toLocaleString()}</span>
                       </div>
                     )

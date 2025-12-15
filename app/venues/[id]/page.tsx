@@ -168,7 +168,6 @@ export default function VenueDetailsPage() {
     try {
       // Check if selected package has a payment URL
       const paymentUrl = selectedPackage?.paymentUrl?.trim() || null
-      
       const trimmedSpecialRequests = specialRequests.trim()
       const eventData = {
         id: `CEV-${Date.now()}`,

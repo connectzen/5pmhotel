@@ -23,6 +23,31 @@ type RoomDoc = {
   description?: string
   amenities?: string[]
   paymentUrl?: string
+  ratePlans?: any
+}
+
+const computeBaseRate = (ratePlans?: any) => {
+  if (!ratePlans) return 0
+  const bedOnly = (ratePlans as any).bedOnly
+  if (bedOnly && typeof bedOnly.amount === "number" && bedOnly.amount > 0) {
+    return bedOnly.amount
+  }
+
+  let min = Number.POSITIVE_INFINITY
+  Object.values(ratePlans as any).forEach((plan: any) => {
+    if (!plan) return
+    if (typeof plan.amount === "number" && plan.amount > 0) {
+      min = Math.min(min, plan.amount)
+    }
+    ;["single", "double", "twin"].forEach((occ) => {
+      const value = plan?.[occ]
+      if (typeof value === "number" && value > 0) {
+        min = Math.min(min, value)
+      }
+    })
+  })
+  return Number.isFinite(min) ? min : 0
+>>>>>>> 8311dcb (Update booking, rooms, venues, and admin components)
 }
 
 export default function RoomDetailsPage() {
@@ -30,6 +55,7 @@ export default function RoomDetailsPage() {
   const roomId = params.id as string
   const [room, setRoom] = useState<RoomDoc | null>(null)
   const [notFound, setNotFound] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState<string>("bedOnly")
   useEffect(() => {
     const load = async () => {
       const d = await getDoc(doc(db, "rooms", roomId))
@@ -38,16 +64,21 @@ export default function RoomDetailsPage() {
         return
       }
       const data = d.data() as any
-        setRoom({
-          name: data.name,
-          price: Number(data.price ?? 0),
-          rating: Number(data.rating ?? 5),
-          capacity: Number(data.capacity ?? 1),
-          images: (data.images as string[]) ?? (data.image ? [data.image] : []),
-          description: data.description ?? "",
-          amenities: (data.amenities as string[]) ?? ["WiFi", "TV"],
-          paymentUrl: data.paymentUrl || "",
-        })
+      const baseRate = computeBaseRate(data.ratePlans)
+      const initialPlan =
+        (data.ratePlans && data.ratePlans.bedOnly && data.ratePlans.bedOnly.amount) ? "bedOnly" : "bedBreakfast"
+      setSelectedPlan(initialPlan)
+      setRoom({
+        name: data.name,
+        price: Number(data.price ?? baseRate ?? 0),
+        rating: Number(data.rating ?? 5),
+        capacity: Number(data.capacity ?? 1),
+        images: (data.images as string[]) ?? (data.image ? [data.image] : []),
+        description: data.description ?? "",
+        amenities: (data.amenities as string[]) ?? ["WiFi", "TV"],
+        paymentUrl: data.paymentUrl || "",
+        ratePlans: data.ratePlans ?? null,
+      })
     }
     load()
   }, [roomId])
@@ -85,6 +116,25 @@ export default function RoomDetailsPage() {
       setNights(1)
     }
   }, [checkIn, checkOut])
+
+  const planDefinitions: Array<{ key: string; label: string }> = [
+    { key: "bedOnly", label: "Bed Only" },
+    { key: "bedBreakfast", label: "Bed & Breakfast" },
+    { key: "bedWine", label: "Bed & Wine" },
+    { key: "bedMeal", label: "Bed & Meal" },
+    { key: "halfBoard", label: "Half Board" },
+    { key: "fullBoard", label: "Full Board" },
+  ]
+
+  const currentPlanPrice = React.useMemo(() => {
+    if (!room?.ratePlans) return room?.price ?? 0
+    const plan = (room.ratePlans as any)[selectedPlan]
+    if (plan && typeof plan.amount === "number" && plan.amount > 0) {
+      return plan.amount
+    }
+    // fallback to base rate
+    return computeBaseRate(room.ratePlans) || room.price || 0
+  }, [room, selectedPlan])
 
   if (notFound) {
     return (
@@ -237,7 +287,7 @@ export default function RoomDetailsPage() {
                   </div>
                   <div className="p-4 bg-muted rounded-lg">
                     <p className="text-sm text-foreground/70 mb-1">Price per Night</p>
-                    <p className="font-serif text-2xl font-bold text-accent">KSh {room.price}</p>
+                    <p className="font-serif text-2xl font-bold text-accent">KSh {currentPlanPrice}</p>
                   </div>
                 </div>
               </div>
@@ -246,7 +296,35 @@ export default function RoomDetailsPage() {
             {/* Booking Form */}
             <div className="lg:col-span-1">
               <div ref={bookingFormRef} className="bg-card rounded-lg shadow-lg p-6 sticky top-20">
-                <h3 className="font-serif text-2xl font-bold text-primary mb-6">Book This Room</h3>
+                <h3 className="font-serif text-2xl font-bold text-primary mb-4">Book This Room</h3>
+
+                {/* Plan selector */}
+                <div className="mb-6">
+                  <p className="text-sm font-semibold text-foreground mb-2">Choose your package</p>
+                  <div className="flex flex-wrap gap-2">
+                    {planDefinitions.map((plan) => {
+                      const planData = (room.ratePlans as any)?.[plan.key]
+                      const amount = planData?.amount
+                      if (!amount || amount <= 0) return null
+                      const isActive = selectedPlan === plan.key
+                      return (
+                        <button
+                          key={plan.key}
+                          type="button"
+                          onClick={() => setSelectedPlan(plan.key)}
+                          className={`px-3 py-2 rounded-full border text-xs sm:text-sm transition-all ${
+                            isActive
+                              ? "bg-accent text-accent-foreground border-accent shadow-sm"
+                              : "bg-secondary text-foreground border-border hover:border-accent/60"
+                          }`}
+                        >
+                          <span className="font-medium">{plan.label}</span>
+                          <span className="ml-2 text-[11px] sm:text-xs opacity-80">KSh {amount}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
 
                 <div className="space-y-4 mb-6">
                   <div>
@@ -394,7 +472,7 @@ export default function RoomDetailsPage() {
                 <div className="bg-muted p-4 rounded-lg mb-6">
                   <div className="flex justify-between mb-2">
                     <span className="text-foreground/70">Price per night</span>
-                    <span className="font-semibold">KSh {room.price}</span>
+                    <span className="font-semibold">KSh {currentPlanPrice}</span>
                   </div>
                   <div className="flex justify-between mb-2">
                     <span className="text-foreground/70">Nights</span>
@@ -402,7 +480,7 @@ export default function RoomDetailsPage() {
                   </div>
                   <div className="border-t border-border pt-2 flex justify-between">
                     <span className="font-semibold">Total</span>
-                    <span className="font-serif text-xl font-bold text-accent">KSh {room.price * nights}</span>
+                    <span className="font-serif text-xl font-bold text-accent">KSh {currentPlanPrice * nights}</span>
                   </div>
                 </div>
 
@@ -441,7 +519,13 @@ export default function RoomDetailsPage() {
                     if (room.paymentUrl && room.paymentUrl.trim()) {
                       setShowPaymentModal(true)
                     } else {
-                      window.location.href = `/booking?room=${encodeURIComponent(room.name)}&price=${room.price}&nights=${nights}${checkIn ? `&checkIn=${format(checkIn, "yyyy-MM-dd")}` : ""}${checkOut ? `&checkOut=${format(checkOut, "yyyy-MM-dd")}` : ""}&adults=${guests}&children=0`
+                      window.location.href = `/booking?room=${encodeURIComponent(
+                        room.name,
+                      )}&price=${currentPlanPrice}&nights=${nights}${
+                        checkIn ? `&checkIn=${format(checkIn, "yyyy-MM-dd")}` : ""
+                      }${checkOut ? `&checkOut=${format(checkOut, "yyyy-MM-dd")}` : ""}&adults=${guests}&children=0&plan=${encodeURIComponent(
+                        selectedPlan,
+                      )}`
                     }
                   }}
                   className="w-full bg-accent text-accent-foreground py-3 rounded-lg font-semibold hover:opacity-90 transition text-center"

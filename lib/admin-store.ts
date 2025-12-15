@@ -15,6 +15,30 @@ export interface Booking {
   amount: number
 }
 
+export type RatePlanKey =
+  | "bedOnly"
+  | "bedBreakfast"
+  | "bedWine"
+  | "bedMeal"
+  | "halfBoard"
+  | "fullBoard"
+
+export interface RatePlanPrices {
+  /**
+   * Single amount for this plan (e.g. Bed & Breakfast rate).
+   * For legacy data we may still have single/double/twin persisted;
+   * helpers should treat `amount` as the source of truth.
+   */
+  amount?: number
+  // Legacy fields kept optional for backward compatibility
+  single?: number
+  double?: number
+  twin?: number
+  note?: string
+}
+
+export type RatePlans = Partial<Record<RatePlanKey, RatePlanPrices>>
+
 export interface Room {
   id: string
   name: string
@@ -24,6 +48,15 @@ export interface Room {
   amenities: string[]
   quantity: number
   images?: string[]
+  /**
+   * Optional per-plan pricing (e.g., Bed & Breakfast, Half Board, etc.)
+   * keyed by plan name with per-occupancy rates.
+   */
+  ratePlans?: RatePlans
+  /**
+   * Optional external payment URL (e.g. Pesapal) for this room.
+   * When set, guests can be redirected to this URL for checkout.
+   */
   paymentUrl?: string
 }
 
@@ -107,31 +140,55 @@ export const mockRooms: Room[] = [
     id: "R001",
     name: "Standard Room",
     capacity: 2,
-    price: 12500,
+    price: 4000,
     status: "active",
     amenities: ["WiFi", "AC", "TV"],
     quantity: 10,
     images: ["/luxury-single-room.jpg"],
+    ratePlans: {
+      bedOnly: { single: 4000, double: 4000 },
+      bedBreakfast: { single: 5000, double: 6000 },
+      bedWine: { single: 5500, double: 5500, note: "Twin includes 1 bottle" },
+      bedMeal: { single: 5500, double: 7000 },
+      halfBoard: { single: 6500, double: 9000 },
+      fullBoard: { single: 8500, double: 13000 },
+    },
   },
   {
     id: "R002",
     name: "Deluxe Suite",
     capacity: 4,
-    price: 22500,
+    price: 6000,
     status: "active",
     amenities: ["WiFi", "AC", "TV", "Mini Bar"],
     quantity: 8,
     images: ["/luxury-suite.jpg"],
+    ratePlans: {
+      bedOnly: { single: 6000, double: 6000, twin: 9000 },
+      bedBreakfast: { single: 7000, double: 8000, twin: 11000 },
+      bedWine: { single: 7500, double: 7500, twin: 11000, note: "Twin includes 1 bottle" },
+      bedMeal: { single: 7500, double: 9000, twin: 12000 },
+      halfBoard: { single: 8500, double: 11000, twin: 14000 },
+      fullBoard: { single: 10500, double: 15000, twin: 18000 },
+    },
   },
   {
     id: "R003",
     name: "Presidential Suite",
     capacity: 6,
-    price: 42500,
+    price: 8500,
     status: "active",
     amenities: ["WiFi", "AC", "TV", "Mini Bar", "Jacuzzi"],
     quantity: 3,
     images: ["/luxury-triple-room.jpg"],
+    ratePlans: {
+      bedOnly: { single: 8500, double: 8500, twin: 15000 },
+      bedBreakfast: { single: 9500, double: 10500, twin: 17000 },
+      bedWine: { single: 10000, double: 10000, twin: 17000, note: "Twin includes 1 bottle" },
+      bedMeal: { single: 10000, double: 11500, twin: 17500 },
+      halfBoard: { single: 11000, double: 14000, twin: 20000 },
+      fullBoard: { single: 13000, double: 18000, twin: 23000 },
+    },
   },
 ]
 

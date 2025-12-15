@@ -11,6 +11,29 @@ import { collection, onSnapshot, query, where, getDocs, addDoc, serverTimestamp 
 import { db } from "@/lib/firebase"
 import { toast } from "@/components/ui/use-toast"
 
+const computeBaseRate = (ratePlans?: any) => {
+  if (!ratePlans) return 0
+  const bedOnly = (ratePlans as any).bedOnly
+  if (bedOnly && typeof bedOnly.amount === "number" && bedOnly.amount > 0) {
+    return bedOnly.amount
+  }
+
+  let min = Number.POSITIVE_INFINITY
+  Object.values(ratePlans as any).forEach((plan: any) => {
+    if (!plan) return
+    if (typeof plan.amount === "number" && plan.amount > 0) {
+      min = Math.min(min, plan.amount)
+    }
+    ;["single", "double", "twin"].forEach((occ) => {
+      const value = plan?.[occ]
+      if (typeof value === "number" && value > 0) {
+        min = Math.min(min, value)
+      }
+    })
+  })
+  return Number.isFinite(min) ? min : 0
+}
+
 interface CreateBookingModalProps {
   isOpen: boolean
   onClose: () => void
@@ -80,7 +103,8 @@ export function CreateBookingModal({ isOpen, onClose, onSuccess }: CreateBooking
     const unsub = onSnapshot(collection(db, "rooms"), (snap) => {
       setRooms(snap.docs.map((d) => {
         const data = d.data()
-        return { id: d.id, name: data.name, price: Number(data.price ?? 0), quantity: Number(data.quantity ?? 1) }
+        const baseRate = computeBaseRate((data as any).ratePlans)
+        return { id: d.id, name: data.name, price: Number(data.price ?? baseRate ?? 0), quantity: Number(data.quantity ?? 1) }
       }))
     })
     return () => unsub()

@@ -16,6 +16,29 @@ interface BookingEditModalProps {
   onClose: () => void
 }
 
+const computeBaseRate = (ratePlans?: any) => {
+  if (!ratePlans) return 0
+  const bedOnly = (ratePlans as any).bedOnly
+  if (bedOnly && typeof bedOnly.amount === "number" && bedOnly.amount > 0) {
+    return bedOnly.amount
+  }
+
+  let min = Number.POSITIVE_INFINITY
+  Object.values(ratePlans as any).forEach((plan: any) => {
+    if (!plan) return
+    if (typeof plan.amount === "number" && plan.amount > 0) {
+      min = Math.min(min, plan.amount)
+    }
+    ;["single", "double", "twin"].forEach((occ) => {
+      const value = plan?.[occ]
+      if (typeof value === "number" && value > 0) {
+        min = Math.min(min, value)
+      }
+    })
+  })
+  return Number.isFinite(min) ? min : 0
+}
+
 export function BookingEditModal({ booking, onSave, onClose }: BookingEditModalProps) {
   const [form, setForm] = useState<Booking>({ ...booking })
   const [rooms, setRooms] = useState<any[]>([])
@@ -28,7 +51,8 @@ export function BookingEditModal({ booking, onSave, onClose }: BookingEditModalP
     const unsub = onSnapshot(collection(db, "rooms"), (snap) => {
       const roomsList = snap.docs.map((d) => {
         const data = d.data()
-        return { id: d.id, name: data.name, price: Number(data.price ?? 0) }
+        const baseRate = computeBaseRate((data as any).ratePlans)
+        return { id: d.id, name: data.name, price: Number(data.price ?? baseRate ?? 0) }
       })
       setRooms(roomsList)
     })

@@ -8,6 +8,29 @@ import Link from "next/link"
 
 type Room = { id: string; name: string; image?: string; price?: number; capacity?: number; rating?: number }
 
+const computeBaseRate = (ratePlans?: any) => {
+  if (!ratePlans) return 0
+  const bedOnly = (ratePlans as any).bedOnly
+  if (bedOnly && typeof bedOnly.amount === "number" && bedOnly.amount > 0) {
+    return bedOnly.amount
+  }
+
+  let min = Number.POSITIVE_INFINITY
+  Object.values(ratePlans as any).forEach((plan: any) => {
+    if (!plan) return
+    if (typeof plan.amount === "number" && plan.amount > 0) {
+      min = Math.min(min, plan.amount)
+    }
+    ;["single", "double", "twin"].forEach((occ) => {
+      const value = plan?.[occ]
+      if (typeof value === "number" && value > 0) {
+        min = Math.min(min, value)
+      }
+    })
+  })
+  return Number.isFinite(min) ? min : 0
+}
+
 export function FeaturedRooms() {
   const [rooms, setRooms] = useState<Room[]>([])
 
@@ -15,7 +38,17 @@ export function FeaturedRooms() {
     // Load all rooms for homepage
     const q = query(collection(db, "rooms"), orderBy("createdAt", "desc"))
     const unsub = onSnapshot(q, (snap) => {
-      setRooms(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as any)
+      setRooms(
+        snap.docs.map((d) => {
+          const data = d.data() as any
+          const baseRate = computeBaseRate(data.ratePlans)
+          return {
+            id: d.id,
+            ...data,
+            price: Number(data.price ?? baseRate ?? 0),
+          } as any
+        }),
+      )
     })
     return () => unsub()
   }, [])
