@@ -53,11 +53,6 @@ export interface Room {
    * keyed by plan name with per-occupancy rates.
    */
   ratePlans?: RatePlans
-  /**
-   * Optional external payment URL (e.g. Pesapal) for this room.
-   * When set, guests can be redirected to this URL for checkout.
-   */
-  paymentUrl?: string
 }
 
 export interface Venue {
@@ -87,7 +82,6 @@ export interface Venue {
     durationHours?: number
     cateringIncluded?: boolean
     price?: number
-    paymentUrl?: string
   }>
 }
 

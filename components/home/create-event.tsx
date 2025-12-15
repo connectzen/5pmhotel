@@ -15,7 +15,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { PaymentInfoModal } from "@/components/payment-info-modal"
 
 type ClientEvent = {
   id: string
@@ -106,8 +105,7 @@ export function CreateEvent() {
   const [note, setNote] = useState("")
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [pendingPaymentData, setPendingPaymentData] = useState<{ paymentUrl: string; eventData: any } | null>(null)
+  const [showPaymentModal, setShowPaymentModal] = useState(false) // reserved if you later add a non-payment modal
   const [errors, setErrors] = useState<{
     eventName?: boolean;
     venue?: boolean;
@@ -153,27 +151,6 @@ export function CreateEvent() {
     if (showCal) document.addEventListener("mousedown", onDocClick)
     return () => document.removeEventListener("mousedown", onDocClick)
   }, [showCal])
-
-  const handleProceedToPayment = async (customerName: string, customerPhone: string) => {
-    if (!pendingPaymentData) return
-    
-    try {
-      // Save event with customer info and external payment status
-      await addDoc(collection(db, "clientEvents"), {
-        ...pendingPaymentData.eventData,
-        customerName: customerName,
-        customerPhone: customerPhone,
-        paymentStatus: "external-pending",
-        paymentMethod: "external",
-      })
-      
-      // Redirect to payment URL
-      window.location.href = pendingPaymentData.paymentUrl
-    } catch (error) {
-      console.error("Failed to save event:", error)
-      throw error
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -228,9 +205,6 @@ export function CreateEvent() {
       return
     }
     
-    // Check if selected package has a payment URL
-    const paymentUrl = selectedPackage?.paymentUrl?.trim() || null
-    
     // Prepare event data
     const pending: ClientEvent = {
       id: `CEV-${Date.now()}`,
@@ -257,16 +231,7 @@ export function CreateEvent() {
       endTime: computedEndTime || null,
       timeStepMinutes,
       totalPrice,
-      paymentUrl: paymentUrl,
       createdAt: serverTimestamp(),
-    }
-    
-    // If payment URL exists, show modal to collect name and phone
-    if (paymentUrl) {
-      setPendingPaymentData({ paymentUrl, eventData })
-      setShowPaymentModal(true)
-      setIsSubmitting(false)
-      return
     }
     
     try {
@@ -451,7 +416,7 @@ export function CreateEvent() {
                     Submitting...
                   </>
                 ) : (
-                  selectedPackage?.paymentUrl?.trim() ? "Proceed to Checkout" : "Submit Request"
+                  "Submit Request"
                 )}
               </button>
             </div>
@@ -503,7 +468,7 @@ export function CreateEvent() {
                     Submitting...
                   </>
                 ) : (
-                  selectedPackage?.paymentUrl?.trim() ? "Proceed to Checkout" : "Submit Request"
+                  "Submit Request"
                 )}
               </button>
             </div>
@@ -566,16 +531,6 @@ export function CreateEvent() {
         </DialogContent>
       </Dialog>
       
-      <PaymentInfoModal
-        isOpen={showPaymentModal}
-        onClose={() => {
-          setShowPaymentModal(false)
-          setPendingPaymentData(null)
-        }}
-        onProceed={handleProceedToPayment}
-        title="Booking Information"
-        showGuestInfo={true}
-      />
     </section>
   )
 }

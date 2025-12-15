@@ -74,7 +74,6 @@ export function RoomFormModal({ room, onSave, onClose, saving }: RoomFormModalPr
       ? {
           ...room,
           ratePlans: room.ratePlans ?? getEmptyRatePlans(),
-          paymentUrl: room.paymentUrl ?? "",
         }
       : {
           id: "",
@@ -85,7 +84,6 @@ export function RoomFormModal({ room, onSave, onClose, saving }: RoomFormModalPr
           amenities: [],
           images: [],
           quantity: 1,
-          paymentUrl: "",
           ratePlans: getEmptyRatePlans(),
         },
   )
@@ -298,20 +296,6 @@ export function RoomFormModal({ room, onSave, onClose, saving }: RoomFormModalPr
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
               </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Payment URL (PesaPal)</label>
-              <Input
-                type="url"
-                value={formData.paymentUrl || ""}
-                onChange={(e) => handleFieldChange("paymentUrl", e.target.value)}
-                placeholder="https://pay.pesapal.com/..."
-                className="w-full"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Optional: External payment URL for this room. If provided, users will be redirected here for checkout.
-              </p>
             </div>
 
             <div>
