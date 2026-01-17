@@ -349,7 +349,7 @@ export function RoomFormModal({ room, onSave, onClose, saving }: RoomFormModalPr
                 {!!(formData.images && formData.images.length) && (
                   <>
                     {formData.images!.map((src, idx) => (
-                      <div key={idx} className="relative group">
+                      <div key={idx} className="relative">
                         <img src={src} alt="room" className="w-28 h-28 object-cover rounded" />
                         <button
                           type="button"
@@ -357,7 +357,7 @@ export function RoomFormModal({ room, onSave, onClose, saving }: RoomFormModalPr
                             const newImages = (formData.images || []).filter((_, i) => i !== idx)
                             handleFieldChange("images", newImages)
                           }}
-                          className="absolute -top-2 -right-2 bg-black/60 text-white rounded-full w-6 h-6 text-xs hidden group-hover:flex items-center justify-center"
+                          className="absolute -top-2 -right-2 bg-black/60 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center"
                           aria-label="Remove image"
                         >
                           ×
