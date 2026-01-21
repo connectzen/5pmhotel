@@ -85,7 +85,8 @@ export default function RoomsPage() {
   const handleSaveRoom = async (room: Room) => {
     const { id, ...data } = room
     const payload: any = { ...data }
-    if (!payload.image && Array.isArray(payload.images) && payload.images.length > 0) {
+    // Always update the image field to match the first image in the images array
+    if (Array.isArray(payload.images) && payload.images.length > 0) {
       payload.image = payload.images[0]
     }
     setError(null)
