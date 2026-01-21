@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import type { RatePlanKey, RatePlanPrices, RatePlans, Room } from "@/lib/admin-store"
 import { storage } from "@/lib/firebase"
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage"
 import { X, UploadCloud } from "lucide-react"
 import { useRef } from "react"
 
@@ -168,6 +168,35 @@ export function RoomFormModal({ room, onSave, onClose, saving }: RoomFormModalPr
 
   const baseRate = computeBaseRate(formData.ratePlans)
 
+  // Extract storage path from Firebase Storage download URL
+  const extractStoragePath = (url: string): string | null => {
+    try {
+      const urlObj = new URL(url)
+      // Firebase Storage URLs have format: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{encodedPath}?alt=media&token={token}
+      const match = urlObj.pathname.match(/\/o\/(.+)$/)
+      if (match) {
+        return decodeURIComponent(match[1])
+      }
+      return null
+    } catch {
+      return null
+    }
+  }
+
+  // Delete image from Firebase Storage
+  const deleteImageFromStorage = async (imageUrl: string) => {
+    try {
+      const path = extractStoragePath(imageUrl)
+      if (path) {
+        const storageRef = ref(storage, path)
+        await deleteObject(storageRef)
+      }
+    } catch (error) {
+      // Silently fail if image deletion fails (image might not exist or be in use)
+      console.warn("Failed to delete image from storage:", error)
+    }
+  }
+
   const handleImages = async (files: FileList | null) => {
     if (!files || files.length === 0) return
     setUploading(true)
@@ -188,6 +217,17 @@ export function RoomFormModal({ room, onSave, onClose, saving }: RoomFormModalPr
       handleFieldChange("images", newImages)
     } finally {
       setUploading(false)
+    }
+  }
+
+  const handleRemoveImage = async (idx: number) => {
+    const imageToRemove = formData.images?.[idx]
+    if (imageToRemove) {
+      // Delete from Firebase Storage
+      await deleteImageFromStorage(imageToRemove)
+      // Remove from form data
+      const newImages = (formData.images || []).filter((_, i) => i !== idx)
+      handleFieldChange("images", newImages)
     }
   }
 
@@ -353,11 +393,8 @@ export function RoomFormModal({ room, onSave, onClose, saving }: RoomFormModalPr
                         <img src={src} alt="room" className="w-28 h-28 object-cover rounded" />
                         <button
                           type="button"
-                          onClick={() => {
-                            const newImages = (formData.images || []).filter((_, i) => i !== idx)
-                            handleFieldChange("images", newImages)
-                          }}
-                          className="absolute -top-2 -right-2 bg-black/60 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center"
+                          onClick={() => handleRemoveImage(idx)}
+                          className="absolute -top-2 -right-2 bg-black/60 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center hover:bg-black/80"
                           aria-label="Remove image"
                         >
                           ×
