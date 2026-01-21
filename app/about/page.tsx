@@ -22,15 +22,19 @@ export default function AboutPage() {
               style={{ backgroundImage: 'url("/luxury-hotel-lobby.jpg")' }}
             />
             <div className="prose prose-lg max-w-none">
-              <h2 className="font-serif text-3xl font-bold text-primary mb-4">Our Story</h2>
+              <h2 className="font-serif text-3xl font-bold text-primary mb-4">ABOUT US</h2>
+              <div className="w-24 h-1 bg-accent mb-6"></div>
               <p className="text-foreground/80 leading-relaxed mb-4">
-                5PM Hotel is a welcoming place for travelers and event organizers in the heart of the city.
-                Since our founding, we have focused on comfortable stays, friendly service, and reliable venues
-                that make planning simple and stress-free.
+                5PM Hotel offers <strong className="text-primary">36 tastefully furnished rooms</strong>, accommodating up to <strong className="text-primary">148 guests</strong>, with a variety of spaces designed for both relaxation and professional gatherings.
+              </p>
+              <p className="text-foreground/80 leading-relaxed mb-4">
+                The hotel features versatile event venues, including the expansive <strong className="text-primary">Aurora Garden</strong>, elegant indoor halls <strong className="text-primary">Alba</strong> and <strong className="text-primary">Zora</strong>, a tented outdoor space <strong className="text-primary">Sahara</strong>, and five private gazebos ideal for intimate occasions.
+              </p>
+              <p className="text-foreground/80 leading-relaxed mb-4">
+                Guests can enjoy diverse dining experiences: <strong className="text-primary">ZORA</strong>, the upstairs restaurant perfect for power lunches or romantic dinners; <strong className="text-primary">ASTRA</strong>, a lively bar with cocktails and live music; the <strong className="text-primary">Aurora Garden</strong>, offering serene open-air meals; and the private gazebos, each equipped with personal grills for barbecues and cozy cookouts.
               </p>
               <p className="text-foreground/80 leading-relaxed">
-                We aim to offer clear value, practical amenities, and a helpful team. Whether you're staying the night
-                or hosting an event, we work to make your experience straightforward and enjoyable.
+                With secure parking for up to <strong className="text-primary">72 vehicles</strong>, <strong className="text-primary">high-speed internet</strong>, and <strong className="text-primary">full support services</strong>. 5PM Hotel caters seamlessly for both casual stays and professional events.
               </p>
             </div>
           </div>
@@ -70,12 +74,12 @@ export default function AboutPage() {
               <div className="bg-muted rounded-lg p-8">
                 <h3 className="font-serif text-2xl font-bold text-primary mb-4">Accommodation</h3>
                 <p className="text-foreground/70 mb-4">
-                  Choose from our diverse range of luxurious rooms and suites, each designed with comfort and elegance
-                  in mind.
+                  Choose from our <strong>36 tastefully furnished rooms</strong>, accommodating up to <strong>148 guests</strong>, each designed with comfort and elegance in mind.
                 </p>
                 <ul className="space-y-2 text-foreground/70">
                   <li>• Premium bedding and linens</li>
                   <li>• Modern amenities and technology</li>
+                  <li>• High-speed internet access</li>
                   <li>• 24/7 room service</li>
                   <li>• Personalized concierge service</li>
                 </ul>
@@ -83,14 +87,39 @@ export default function AboutPage() {
               <div className="bg-muted rounded-lg p-8">
                 <h3 className="font-serif text-2xl font-bold text-primary mb-4">Events & Venues</h3>
                 <p className="text-foreground/70 mb-4">
-                  Host your perfect event in our stunning venues, supported by our experienced event planning team.
+                  Host your perfect event in our stunning venues, including <strong>Aurora Garden</strong>, <strong>Alba</strong>, <strong>Zora</strong>, <strong>Sahara</strong>, and five private gazebos.
                 </p>
                 <ul className="space-y-2 text-foreground/70">
-                  <li>• Multiple venue options</li>
+                  <li>• Multiple versatile venue options</li>
                   <li>• Professional event coordination</li>
                   <li>• Catering services</li>
                   <li>• AV and technical support</li>
+                  <li>• Secure parking for up to 72 vehicles</li>
                 </ul>
+              </div>
+            </div>
+            <div className="bg-muted rounded-lg p-8 mt-8">
+              <h3 className="font-serif text-2xl font-bold text-primary mb-4">Dining Experiences</h3>
+              <p className="text-foreground/70 mb-4">
+                Enjoy diverse dining experiences throughout the hotel.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-foreground/70">
+                <div>
+                  <p className="font-semibold text-primary mb-2">ZORA Restaurant</p>
+                  <p>Upstairs restaurant perfect for power lunches or romantic dinners</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-primary mb-2">ASTRA Bar</p>
+                  <p>Lively bar with cocktails and live music</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-primary mb-2">Aurora Garden</p>
+                  <p>Serene open-air dining experience</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-primary mb-2">Private Gazebos</p>
+                  <p>Each equipped with personal grills for barbecues and cozy cookouts</p>
+                </div>
               </div>
             </div>
           </div>

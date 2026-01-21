@@ -49,13 +49,20 @@ export function RoomsTable({ rooms, onEdit, onDelete, busyId }: RoomsTableProps)
                 }`}
               >
                 <td className="px-3 sm:px-6 py-4">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded overflow-hidden bg-muted">
+                  <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded overflow-hidden bg-muted">
                     {Boolean((room as any).image || (room.images && room.images[0])) ? (
-                      <img
-                        src={(room as any).image || room.images![0]}
-                        alt={room.name}
-                        className="w-full h-full object-cover"
-                      />
+                      <>
+                        <img
+                          src={(room as any).image || room.images![0]}
+                          alt={room.name}
+                          className="w-full h-full object-cover"
+                        />
+                        {room.images && room.images.length > 1 && (
+                          <div className="absolute bottom-0 right-0 bg-black/70 text-white text-[10px] px-1 rounded-tl">
+                            {room.images.length}
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">No image</div>
                     )}

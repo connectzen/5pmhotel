@@ -178,7 +178,13 @@ export default function RoomsPage() {
                 {filteredRooms.map((room) => (
                   <Link key={room.id} href={`/rooms/${room.id}`}>
                     <div className="bg-card rounded-lg overflow-hidden shadow-md hover:shadow-xl transition cursor-pointer h-full">
-                      <div className="h-64 bg-cover bg-center" style={{ backgroundImage: `url('${room.image ?? room.images?.[0] ?? "/luxury-single-room.jpg"}')` }} />
+                      <div className="relative h-64 bg-cover bg-center" style={{ backgroundImage: `url('${room.image ?? room.images?.[0] ?? "/luxury-single-room.jpg"}')` }}>
+                        {room.images && room.images.length > 1 && (
+                          <div className="absolute top-3 right-3 bg-black/60 text-white px-2 py-1 rounded-full text-xs font-medium">
+                            {room.images.length} photos
+                          </div>
+                        )}
+                      </div>
                       <div className="p-6">
                         <h3 className="font-serif text-2xl font-bold text-primary mb-2">{room.name}</h3>
                         <p className="text-foreground/70 text-sm mb-4">{room.description}</p>

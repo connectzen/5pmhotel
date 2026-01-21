@@ -68,11 +68,16 @@ export function FeaturedRooms() {
               className="bg-card rounded-xl overflow-hidden shadow-lg transition-all duration-300 group border border-border/50 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-accent flex flex-col"
             >
               <div className="relative h-48 bg-cover bg-center overflow-hidden transition-transform duration-300 group-hover:scale-105" style={{ backgroundImage: `url('${(room as any).image ?? (room as any).images?.[0] ?? "/luxury-single-room.jpg"}')` }}>
-                <div className="absolute top-3 right-3">
+                <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
                   <div className="bg-black/60 backdrop-blur-sm px-2 py-1 rounded-full flex items-center gap-1">
                     <Star size={14} className="fill-yellow-400 text-yellow-400" />
                     <span className="text-white text-xs font-semibold">{room.rating ?? 5.0}</span>
                   </div>
+                  {(room as any).images && Array.isArray((room as any).images) && (room as any).images.length > 1 && (
+                    <div className="bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded-full text-xs font-medium">
+                      {(room as any).images.length} photos
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="p-5 flex flex-col flex-1">

@@ -12,6 +12,7 @@ type UnifiedItem = {
   type: "room" | "venue"
   name: string
   image?: string
+  images?: string[]
   price?: number
   capacity?: number
   rating?: number
@@ -42,6 +43,7 @@ export function ListingsUnified() {
       type: "room",
       name: r.name,
       image: (r as any).image ?? r.images?.[0],
+      images: r.images,
       price: r.price,
       capacity: r.capacity,
       rating: r.rating,
@@ -51,6 +53,7 @@ export function ListingsUnified() {
       type: "venue",
       name: v.name,
       image: (v as any).image ?? v.images?.[0],
+      images: v.images,
       price: (v as any).price,
       capacity: v.capacity,
     }))
@@ -76,9 +79,15 @@ export function ListingsUnified() {
           {items.map((it) => (
             <div key={it.id} className="bg-card rounded-xl overflow-hidden shadow-md transition-all duration-300 group border border-border/50">
               <div
-                className="h-48 bg-cover bg-center"
+                className="relative h-48 bg-cover bg-center"
                 style={{ backgroundImage: `url('${it.image ?? (it.type === "room" ? "/luxury-single-room.jpg" : "/luxury-ballroom.jpg")}')` }}
-              />
+              >
+                {it.images && Array.isArray(it.images) && it.images.length > 1 && (
+                  <div className="absolute top-3 right-3 bg-black/60 text-white px-2 py-1 rounded-full text-xs font-medium">
+                    {it.images.length} photos
+                  </div>
+                )}
+              </div>
               <div className="p-4">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-serif text-xl font-bold text-primary">{it.name}</h3>
