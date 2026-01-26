@@ -10,10 +10,13 @@ import { Plus, Users, Calendar, AlertCircle, Bed } from "lucide-react"
 import { OccupancyReportChart } from "@/components/admin/occupancy-report-chart";
 import { RoomDistributionChart } from "@/components/admin/room-distribution-chart";
 import { RevenueReportChart } from "@/components/admin/revenue-report-chart";
-import { collection, onSnapshot } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { collection, onSnapshot, doc, setDoc, getDoc } from "firebase/firestore"
+import { db, storage } from "@/lib/firebase"
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage"
 import { parseISO, isValid, isToday, startOfDay } from "date-fns"
 import { onAuthUser, getUserRole } from "@/lib/auth"
+import { toast } from "sonner"
+import { Upload, FileText, X } from "lucide-react"
 
 export default function DashboardPage() {
   const [bookings, setBookings] = useState<any[]>([])
@@ -25,6 +28,9 @@ export default function DashboardPage() {
   const [userInfo, setUserInfo] = useState<{ uid: string; role?: string } | null>(null)
   const [prevPending, setPrevPending] = useState<{ bookings: number; events: number }>({ bookings: 0, events: 0 })
   const [prevExpiring, setPrevExpiring] = useState<number>(0)
+  const [brochureUrl, setBrochureUrl] = useState<string | null>(null)
+  const [brochureFile, setBrochureFile] = useState<File | null>(null)
+  const [uploadingBrochure, setUploadingBrochure] = useState(false)
 
   useEffect(() => {
     const unsubAuth = onAuthUser(async (u) => {
@@ -47,6 +53,21 @@ export default function DashboardPage() {
     const unsubEvents = onSnapshot(collection(db, "clientEvents"), (snap) => {
       setEvents(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })))
     })
+    
+    // Load brochure URL from Firestore
+    const loadBrochure = async () => {
+      try {
+        const brochureDoc = await getDoc(doc(db, "hotelSettings", "brochure"))
+        if (brochureDoc.exists()) {
+          const data = brochureDoc.data()
+          setBrochureUrl(data.url || null)
+        }
+      } catch (error) {
+        console.error("Error loading brochure:", error)
+      }
+    }
+    loadBrochure()
+    
     return () => {
       unsubAuth()
       unsubBookings()
@@ -377,6 +398,86 @@ export default function DashboardPage() {
     setPrevExpiring(expiringToday)
   }, [bookings, rooms, roomsWithAvailability, payments, events])
 
+  const handleBrochureUpload = async () => {
+    if (!brochureFile) {
+      toast.error("Please select a PDF file")
+      return
+    }
+    
+    if (brochureFile.type !== "application/pdf") {
+      toast.error("Please upload a PDF file only")
+      return
+    }
+    
+    if (brochureFile.size > 10 * 1024 * 1024) {
+      toast.error("File size must be less than 10MB")
+      return
+    }
+    
+    setUploadingBrochure(true)
+    try {
+      // Delete old brochure if exists
+      if (brochureUrl) {
+        try {
+          const oldPath = brochureUrl.split("/o/")[1]?.split("?")[0]
+          if (oldPath) {
+            const decodedPath = decodeURIComponent(oldPath)
+            const oldRef = ref(storage, decodedPath)
+            await deleteObject(oldRef)
+          }
+        } catch (error) {
+          console.warn("Could not delete old brochure:", error)
+        }
+      }
+      
+      // Upload new brochure
+      const path = `brochures/${Date.now()}-${brochureFile.name}`
+      const storageRef = ref(storage, path)
+      await uploadBytes(storageRef, brochureFile)
+      const url = await getDownloadURL(storageRef)
+      
+      // Save URL to Firestore
+      await setDoc(doc(db, "hotelSettings", "brochure"), {
+        url,
+        fileName: brochureFile.name,
+        uploadedAt: new Date().toISOString(),
+      })
+      
+      setBrochureUrl(url)
+      setBrochureFile(null)
+      toast.success("Brochure uploaded successfully!")
+    } catch (error) {
+      console.error("Error uploading brochure:", error)
+      toast.error("Failed to upload brochure")
+    } finally {
+      setUploadingBrochure(false)
+    }
+  }
+
+  const handleRemoveBrochure = async () => {
+    if (!brochureUrl) return
+    
+    try {
+      const path = brochureUrl.split("/o/")[1]?.split("?")[0]
+      if (path) {
+        const decodedPath = decodeURIComponent(path)
+        const storageRef = ref(storage, decodedPath)
+        await deleteObject(storageRef)
+      }
+      
+      await setDoc(doc(db, "hotelSettings", "brochure"), {
+        url: null,
+        fileName: null,
+      })
+      
+      setBrochureUrl(null)
+      toast.success("Brochure removed successfully")
+    } catch (error) {
+      console.error("Error removing brochure:", error)
+      toast.error("Failed to remove brochure")
+    }
+  }
+
   return (
     <div className="h-full flex flex-col min-w-0">
       <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 md:space-y-8 bg-background flex-1 overflow-y-auto">
@@ -388,6 +489,79 @@ export default function DashboardPage() {
           <p className="text-muted-foreground text-sm sm:text-base md:text-lg">Welcome back to 5PM Hotel Admin</p>
         </div>
       </div>
+
+      {/* Brochure Upload Section */}
+      <Card className="p-6 border-l-4 border-l-accent/50 bg-gradient-to-br from-card to-card/95">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-accent/10 rounded-lg">
+              <FileText className="w-6 h-6 text-accent" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-foreground">Hotel Brochure</h2>
+              <p className="text-sm text-muted-foreground">Upload a PDF brochure for guests to download</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="space-y-4">
+          {brochureUrl ? (
+            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border border-border">
+              <div className="flex items-center gap-3">
+                <FileText className="w-5 h-5 text-accent" />
+                <div>
+                  <p className="font-medium text-foreground">Brochure uploaded</p>
+                  <p className="text-xs text-muted-foreground">Available for download on frontend</p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRemoveBrochure}
+                className="gap-2 text-destructive hover:text-destructive"
+              >
+                <X className="w-4 h-4" />
+                Remove
+              </Button>
+            </div>
+          ) : (
+            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+              <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground mb-4">No brochure uploaded</p>
+            </div>
+          )}
+          
+          <div className="flex gap-3">
+            <label className="flex-1">
+              <input
+                type="file"
+                accept=".pdf,application/pdf"
+                onChange={(e) => setBrochureFile(e.target.files?.[0] || null)}
+                className="hidden"
+                id="brochure-upload"
+              />
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() => document.getElementById("brochure-upload")?.click()}
+                disabled={uploadingBrochure}
+              >
+                <Upload className="w-4 h-4" />
+                {brochureFile ? brochureFile.name : "Choose PDF File"}
+              </Button>
+            </label>
+            {brochureFile && (
+              <Button
+                onClick={handleBrochureUpload}
+                disabled={uploadingBrochure}
+                className="gap-2"
+              >
+                {uploadingBrochure ? "Uploading..." : "Upload"}
+              </Button>
+            )}
+          </div>
+        </div>
+      </Card>
 
       {/* Available Rooms Card - First Priority */}
       <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
