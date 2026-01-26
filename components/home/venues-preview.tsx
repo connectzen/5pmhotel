@@ -27,7 +27,30 @@ export function VenuesPreview() {
     // Load all venues for the homepage (no pagination)
     const q = query(collection(db, "venues"), orderBy("createdAt", "desc"))
     const unsub = onSnapshot(q, (snap) => {
-      setVenues(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as any)
+      setVenues(snap.docs.map((d) => {
+        const data = d.data() as any
+        // Extract timestamp properly
+        let updatedAt = Date.now()
+        if (data.updatedAt) {
+          if (typeof data.updatedAt.toMillis === 'function') {
+            updatedAt = data.updatedAt.toMillis()
+          } else if (typeof data.updatedAt === 'number') {
+            updatedAt = data.updatedAt
+          } else if (data.updatedAt.seconds) {
+            updatedAt = data.updatedAt.seconds * 1000
+          }
+        }
+        // Create cache key based on images
+        const imagesArray = data.images || (data.image ? [data.image] : [])
+        const imagesKey = imagesArray.join('|').slice(0, 100) // Use first 100 chars of URLs
+        const cacheKey = `${updatedAt}-${imagesArray.length}-${imagesKey.length}`
+        return { 
+          id: d.id, 
+          ...data,
+          updatedAt,
+          _cacheKey: cacheKey,
+        }
+      }) as any)
     })
     return () => unsub()
   }, [])
@@ -41,7 +64,8 @@ export function VenuesPreview() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {venues.map((venue) => {
-            const img = (venue as any).image ?? venue.images?.[0] ?? "/luxury-ballroom.jpg"
+            // Prioritize images array over image field to ensure latest images are shown
+            const img = venue.images?.[0] ?? (venue as any).image ?? "/luxury-ballroom.jpg"
             const pkgs = (venue.packages || []).slice(0, 3)
             const extraCount = Math.max(0, (venue.packages?.length || 0) - pkgs.length)
             const capacities = venue.capacities || {}
@@ -65,7 +89,18 @@ export function VenuesPreview() {
                 href={`/venues/${venue.id}`}
                 className="bg-card rounded-lg overflow-hidden shadow-md transition-all duration-300 group border border-border/50 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-accent flex flex-col"
               >
-                <div className="h-48 bg-cover bg-center transition-transform duration-300 group-hover:scale-105" style={{ backgroundImage: `url('${img}')` }} />
+                <div className="relative h-48 bg-cover bg-center transition-transform duration-300 group-hover:scale-105 overflow-hidden">
+                  <div 
+                    key={`venue-preview-img-${venue.id}-${(venue as any)._cacheKey || (venue as any).updatedAt || Date.now()}`}
+                    className="w-full h-full bg-cover bg-center" 
+                    style={{ backgroundImage: `url('${img}${img !== "/luxury-ballroom.jpg" ? `?v=${(venue as any)._cacheKey || (venue as any).updatedAt || Date.now()}` : ''}')` }} 
+                  />
+                  {venue.images && venue.images.length > 1 && (
+                    <div className="absolute top-3 right-3 bg-black/60 text-white px-2 py-1 rounded-full text-xs font-medium z-10">
+                      {venue.images.length} photos
+                    </div>
+                  )}
+                </div>
                 <div className="p-4 flex flex-col flex-1">
                   <h3 className="font-serif text-xl font-bold text-primary mb-2 group-hover:text-accent transition-colors">{venue.name}</h3>
                   {venue.operatingHours?.start && venue.operatingHours?.end && (

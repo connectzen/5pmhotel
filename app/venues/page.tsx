@@ -114,11 +114,28 @@ export default function VenuesPage() {
         if (classroom > 0) availableLayouts.push("Classroom")
         if (uShape > 0) availableLayouts.push("U-Shape")
         if (boardroom > 0) availableLayouts.push("Boardroom")
+        // Extract timestamp properly
+        let updatedAt = Date.now()
+        if (data.updatedAt) {
+          if (typeof data.updatedAt.toMillis === 'function') {
+            updatedAt = data.updatedAt.toMillis()
+          } else if (typeof data.updatedAt === 'number') {
+            updatedAt = data.updatedAt
+          } else if (data.updatedAt.seconds) {
+            updatedAt = data.updatedAt.seconds * 1000
+          }
+        }
+        // Create a cache key based on images array to force reload when images change
+        const imagesArray = data.images || (data.image ? [data.image] : [])
+        const imagesKey = imagesArray.join('|').slice(0, 100) // Use first 100 chars of URLs
+        const cacheKey = `${updatedAt}-${imagesArray.length}-${imagesKey.length}`
         return {
           id: d.id,
           ...data,
           maxCapacity,
           availableLayouts,
+          updatedAt,
+          _cacheKey: cacheKey, // Internal cache key for forcing image reloads
         }
       })
       setVenues(list)
@@ -164,7 +181,26 @@ export default function VenuesPage() {
               return (
                 <Link key={venue.id} href={`/venues/${venue.id}`}>
                   <div className="bg-card rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer h-full flex flex-col hover:scale-105 hover:-translate-y-1 group">
-                    <div className="h-48 bg-cover bg-center transition-transform duration-300 group-hover:scale-110" style={{ backgroundImage: `url('${venue.image ?? venue.images?.[0] ?? "/luxury-ballroom.jpg"}')` }} />
+                    {(() => {
+                      // Prioritize images array over image field to ensure latest images are shown
+                      const displayImage = venue.images?.[0] ?? venue.image ?? "/luxury-ballroom.jpg"
+                      const cacheKey = (venue as any)._cacheKey || venue.updatedAt || Date.now()
+                      const hasMultipleImages = venue.images && venue.images.length > 1
+                      return (
+                        <div className="relative h-48 bg-cover bg-center transition-transform duration-300 group-hover:scale-110 overflow-hidden">
+                          <div 
+                            key={`venue-img-${venue.id}-${cacheKey}`}
+                            className="w-full h-full bg-cover bg-center" 
+                            style={{ backgroundImage: `url('${displayImage}${displayImage !== "/luxury-ballroom.jpg" ? `?v=${cacheKey}` : ''}')` }} 
+                          />
+                          {hasMultipleImages && (
+                            <div className="absolute top-3 right-3 bg-black/60 text-white px-2 py-1 rounded-full text-xs font-medium z-10">
+                              {venue.images.length} photos
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })()}
                     <div className="p-6 flex-1 flex flex-col">
                       <h3 className="font-serif text-xl font-bold text-primary mb-2 group-hover:text-accent transition-colors">{venue.name}</h3>
                       <p className="text-foreground/70 text-sm mb-4 flex-1">{venue.description}</p>

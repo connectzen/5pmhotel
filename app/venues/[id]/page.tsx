@@ -5,11 +5,11 @@ import { useParams } from "next/navigation"
 import Link from "next/link"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
-import { Users, Wifi, Zap, CalendarIcon, CheckCircle2, Phone, X } from "lucide-react"
+import { Users, Wifi, Zap, CalendarIcon, CheckCircle2, Phone, X, ChevronLeft, ChevronRight } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import { format, isValid } from "date-fns"
 import { db } from "@/lib/firebase"
-import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore"
+import { doc, onSnapshot, collection, addDoc, serverTimestamp } from "firebase/firestore"
 import {
   Dialog,
   DialogContent,
@@ -51,6 +51,8 @@ export default function VenueDetailsPage() {
   const [venue, setVenue] = useState<VenueData | null>(null)
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [imageCacheBuster, setImageCacheBuster] = useState(Date.now())
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
   
   // Form state
   const [eventDate, setEventDate] = useState<Date | undefined>()
@@ -186,11 +188,12 @@ export default function VenueDetailsPage() {
   }
 
   useEffect(() => {
-    const loadVenue = async () => {
-      try {
-        const docRef = doc(db, "venues", venueId)
-        const docSnap = await getDoc(docRef)
-        
+    if (!venueId) return
+
+    const docRef = doc(db, "venues", venueId)
+    const unsubscribe = onSnapshot(
+      docRef,
+      (docSnap) => {
         if (!docSnap.exists()) {
           setNotFound(true)
           setLoading(false)
@@ -198,12 +201,30 @@ export default function VenueDetailsPage() {
         }
 
         const data = docSnap.data() as any
+        // Extract timestamp properly
+        let updatedAt = Date.now()
+        if (data.updatedAt) {
+          if (typeof data.updatedAt.toMillis === 'function') {
+            updatedAt = data.updatedAt.toMillis()
+          } else if (typeof data.updatedAt === 'number') {
+            updatedAt = data.updatedAt
+          } else if (data.updatedAt.seconds) {
+            updatedAt = data.updatedAt.seconds * 1000
+          }
+        }
+        // Create cache key based on images to force reload when images change
+        const imagesArray = data.images || (data.image ? [data.image] : [])
+        const imagesKey = imagesArray.join('|').slice(0, 100) // Use first 100 chars of URLs
+        const cacheKey = `${updatedAt}-${imagesArray.length}-${imagesKey.length}`
+        
+        // Prioritize images array over image field to ensure latest images are shown
+        const primaryImage = imagesArray[0] || data.image || null
         setVenue({
           name: data.name || "",
           description: data.description || "",
           capacity: Number(data.capacity ?? 0),
-          image: data.image || data.images?.[0],
-          images: data.images || (data.image ? [data.image] : []),
+          image: primaryImage,
+          images: imagesArray,
           setupStyles: data.setupStyles || [],
           facilities: data.facilities || [],
           // Do not derive dummy pricing; show only real packages from dashboard
@@ -214,17 +235,18 @@ export default function VenueDetailsPage() {
           })),
           capacities: data.capacities || undefined,
         })
-      } catch (error) {
+        // Update cache buster when venue data changes to force image reload
+        setImageCacheBuster(cacheKey)
+        setLoading(false)
+      },
+      (error) => {
         console.error("Error loading venue:", error)
         setNotFound(true)
-      } finally {
         setLoading(false)
       }
-    }
+    )
 
-    if (venueId) {
-      loadVenue()
-    }
+    return () => unsubscribe()
   }, [venueId])
   
   // Default select first package and time when venue loads
@@ -232,6 +254,22 @@ export default function VenueDetailsPage() {
     setSelectedPackageId(venue?.packages?.[0]?.id || "")
     setStartTime(timeOptions[0] || "")
   }, [venue, timeOptions])
+
+  // Reset image index when venue changes
+  useEffect(() => {
+    setCurrentImageIndex(0)
+  }, [venue?.images, venueId])
+
+  // Image navigation functions
+  const nextImage = () => {
+    if (!venue?.images || venue.images.length === 0) return
+    setCurrentImageIndex((prev) => (prev + 1) % venue.images.length)
+  }
+
+  const prevImage = () => {
+    if (!venue?.images || venue.images.length === 0) return
+    setCurrentImageIndex((prev) => (prev - 1 + venue.images.length) % venue.images.length)
+  }
 
   if (loading) {
     return (
@@ -268,8 +306,54 @@ export default function VenueDetailsPage() {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-1 pt-16">
-        {/* Hero Image */}
-        <div className="h-96 md:h-screen bg-cover bg-center" style={{ backgroundImage: `url('${venue.image || venue.images?.[0] || "/luxury-ballroom.jpg"}')` }} />
+        {/* Image Gallery */}
+        <div className="relative h-96 md:h-screen bg-gray-200 overflow-hidden">
+          {(() => {
+            // Prioritize images array over image field
+            const imagesArray = venue.images || (venue.image ? [venue.image] : [])
+            const displayImage = imagesArray[currentImageIndex] || "/luxury-ballroom.jpg"
+            return (
+              <div
+                key={`hero-${displayImage}-${imageCacheBuster}-${currentImageIndex}`}
+                className="w-full h-full bg-cover bg-center transition-all duration-300"
+                style={{ backgroundImage: `url('${displayImage}?v=${imageCacheBuster}')` }}
+              />
+            )
+          })()}
+          {venue.images && venue.images.length > 1 && (
+            <>
+              <button
+                onClick={prevImage}
+                className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition z-10"
+                aria-label="Previous image"
+              >
+                <ChevronLeft size={24} />
+              </button>
+              <button
+                onClick={nextImage}
+                className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition z-10"
+                aria-label="Next image"
+              >
+                <ChevronRight size={24} />
+              </button>
+              <div className="absolute top-4 right-4 bg-black/60 text-white px-3 py-1 rounded-full text-sm font-medium z-10">
+                {currentImageIndex + 1} / {venue.images.length}
+              </div>
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                {venue.images.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentImageIndex(index)}
+                    className={`w-2 h-2 rounded-full transition ${
+                      index === currentImageIndex ? "bg-white" : "bg-white/50"
+                    }`}
+                    aria-label={`Go to image ${index + 1}`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
 
         <div className="max-w-7xl mx-auto px-4 py-12">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

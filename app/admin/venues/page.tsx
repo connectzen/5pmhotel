@@ -44,8 +44,12 @@ export default function VenuesPage() {
   const handleSaveVenue = async (venue: Venue) => {
     const { id, ...data } = venue
     const payload: any = { ...data }
-    if (!payload.image && Array.isArray(payload.images) && payload.images.length > 0) {
+    // Always sync the image field with the first image in the images array
+    if (Array.isArray(payload.images) && payload.images.length > 0) {
       payload.image = payload.images[0]
+    } else if (!payload.image && payload.images && payload.images.length === 0) {
+      // If images array is empty, clear the image field
+      payload.image = null
     }
     setBusyId(venue.id ?? "new")
     try {

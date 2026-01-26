@@ -29,7 +29,30 @@ export function ListingsUnified() {
     })
     const vq = query(collection(db, "venues"), orderBy("createdAt", "desc"))
     const vu = onSnapshot(vq, (snap) => {
-      setVenues(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as any)
+      setVenues(snap.docs.map((d) => {
+        const data = d.data() as any
+        // Extract timestamp properly
+        let updatedAt = Date.now()
+        if (data.updatedAt) {
+          if (typeof data.updatedAt.toMillis === 'function') {
+            updatedAt = data.updatedAt.toMillis()
+          } else if (typeof data.updatedAt === 'number') {
+            updatedAt = data.updatedAt
+          } else if (data.updatedAt.seconds) {
+            updatedAt = data.updatedAt.seconds * 1000
+          }
+        }
+        // Create cache key based on images
+        const imagesArray = data.images || (data.image ? [data.image] : [])
+        const imagesKey = imagesArray.join('|').slice(0, 100) // Use first 100 chars of URLs
+        const cacheKey = `${updatedAt}-${imagesArray.length}-${imagesKey.length}`
+        return { 
+          id: d.id, 
+          ...data,
+          updatedAt,
+          _cacheKey: cacheKey,
+        }
+      }) as any)
     })
     return () => {
       ru()
@@ -52,7 +75,8 @@ export function ListingsUnified() {
       id: `venue-${v.id}`,
       type: "venue",
       name: v.name,
-      image: (v as any).image ?? v.images?.[0],
+      // Prioritize images array over image field to ensure latest images are shown
+      image: v.images?.[0] ?? (v as any).image,
       images: v.images,
       price: (v as any).price,
       capacity: v.capacity,
@@ -79,8 +103,9 @@ export function ListingsUnified() {
           {items.map((it) => (
             <div key={it.id} className="bg-card rounded-xl overflow-hidden shadow-md transition-all duration-300 group border border-border/50">
               <div
+                key={`listing-img-${it.id}-${(it as any)._cacheKey || (it as any).updatedAt || Date.now()}`}
                 className="relative h-48 bg-cover bg-center"
-                style={{ backgroundImage: `url('${it.image ?? (it.type === "room" ? "/luxury-single-room.jpg" : "/luxury-ballroom.jpg")}')` }}
+                style={{ backgroundImage: `url('${it.image ?? (it.type === "room" ? "/luxury-single-room.jpg" : "/luxury-ballroom.jpg")}${it.image && it.image !== "/luxury-single-room.jpg" && it.image !== "/luxury-ballroom.jpg" ? `?v=${(it as any)._cacheKey || (it as any).updatedAt || Date.now()}` : ''}')` }}
               >
                 {it.images && Array.isArray(it.images) && it.images.length > 1 && (
                   <div className="absolute top-3 right-3 bg-black/60 text-white px-2 py-1 rounded-full text-xs font-medium">
