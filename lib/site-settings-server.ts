@@ -1,6 +1,6 @@
 import "server-only"
 
-import { cache } from "react"
+import { unstable_cache } from "next/cache"
 import { getAdminApp } from "@/lib/firebaseAdmin"
 
 export type HomepageSettings = {
@@ -9,7 +9,7 @@ export type HomepageSettings = {
   updatedAt?: any
 }
 
-export const getHomepageSettings = cache(async (): Promise<HomepageSettings | null> => {
+async function fetchHomepageSettings(): Promise<HomepageSettings | null> {
   const app = await getAdminApp()
   if (!app) return null
 
@@ -20,11 +20,16 @@ export const getHomepageSettings = cache(async (): Promise<HomepageSettings | nu
   const snap = await firestore.collection("siteSettings").doc("homepage").get()
   if (!snap.exists) return null
   return (snap.data() ?? null) as HomepageSettings | null
+}
+
+export const getHomepageSettings = unstable_cache(fetchHomepageSettings, ["siteSettings/homepage"], {
+  tags: ["site-settings", "site-settings:homepage"],
+  revalidate: 3600,
 })
 
-export const getHomepageHeroImageUrl = cache(async (): Promise<string | null> => {
+export async function getHomepageHeroImageUrl(): Promise<string | null> {
   const settings = await getHomepageSettings()
   const url = settings?.heroImageUrl
   return typeof url === "string" && url.length > 0 ? url : null
-})
+}
 

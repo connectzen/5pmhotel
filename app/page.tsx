@@ -11,6 +11,10 @@ import { LocationMap } from "@/components/home/location-map"
 import { FloatingBookingCta } from "@/components/home/floating-booking-cta"
 import { getHomepageHeroImageUrl } from "@/lib/site-settings-server"
 
+// Ensure the homepage reflects dashboard changes after deploy.
+// It will be cached and revalidated; the dashboard also triggers on-demand revalidation.
+export const revalidate = 3600
+
 export default async function Home() {
   const heroImageUrl = await getHomepageHeroImageUrl()
   return (

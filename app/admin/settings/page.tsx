@@ -68,6 +68,23 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 2000)
   }
 
+  const triggerHomepageRevalidate = async () => {
+    try {
+      await fetch("/api/revalidate/homepage", {
+        method: "POST",
+        headers: {
+          // If REVALIDATE_SECRET is set on the server, also set NEXT_PUBLIC_REVALIDATE_SECRET
+          // so the dashboard can authenticate this call.
+          ...(process.env.NEXT_PUBLIC_REVALIDATE_SECRET
+            ? { "x-revalidate-secret": process.env.NEXT_PUBLIC_REVALIDATE_SECRET }
+            : {}),
+        },
+      })
+    } catch {
+      // Ignore revalidation failures; the homepage will still update on the next ISR cycle.
+    }
+  }
+
   const handleHeroImageUpload = async () => {
     if (!heroImageFile) {
       toast.error("Please choose an image first")
@@ -118,6 +135,7 @@ export default function SettingsPage() {
       setHeroImagePath(path)
       setHeroImageFile(null)
       toast.success("Homepage hero image updated")
+      void triggerHomepageRevalidate()
     } catch (e) {
       console.error("Error uploading hero image:", e)
       toast.error("Failed to upload image")
@@ -148,6 +166,7 @@ export default function SettingsPage() {
       setHeroImagePath(null)
       setHeroImageFile(null)
       toast.success("Homepage hero image deleted")
+      void triggerHomepageRevalidate()
     } catch (e) {
       console.error("Error deleting hero image:", e)
       toast.error("Failed to delete image")
