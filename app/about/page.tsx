@@ -17,10 +17,6 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto px-4 py-16">
           {/* Hero Section */}
           <div className="mb-16">
-            <div
-              className="h-96 bg-cover bg-center rounded-lg shadow-lg mb-8"
-              style={{ backgroundImage: 'url("/luxury-hotel-lobby.jpg")' }}
-            />
             <div className="prose prose-lg max-w-none">
               <h2 className="font-serif text-3xl font-bold text-primary mb-4">ABOUT US</h2>
               <div className="w-24 h-1 bg-accent mb-6"></div>
