@@ -1,10 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Save } from "lucide-react"
+import { Save, Upload, Trash2 } from "lucide-react"
+import { toast } from "sonner"
+import { db, storage } from "@/lib/firebase"
+import { doc, getDoc, setDoc } from "firebase/firestore"
+import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage"
 
 export default function SettingsPage() {
   const [hotelSettings, setHotelSettings] = useState({
@@ -24,10 +28,132 @@ export default function SettingsPage() {
   })
 
   const [saved, setSaved] = useState(false)
+  const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null)
+  const [heroImagePath, setHeroImagePath] = useState<string | null>(null)
+  const [heroImageFile, setHeroImageFile] = useState<File | null>(null)
+  const [uploadingHeroImage, setUploadingHeroImage] = useState(false)
+
+  const heroPreviewUrl = useMemo(() => {
+    if (!heroImageFile) return null
+    return URL.createObjectURL(heroImageFile)
+  }, [heroImageFile])
+
+  useEffect(() => {
+    return () => {
+      if (heroPreviewUrl) URL.revokeObjectURL(heroPreviewUrl)
+    }
+  }, [heroPreviewUrl])
+
+  useEffect(() => {
+    const loadHomepageHero = async () => {
+      try {
+        const snap = await getDoc(doc(db, "siteSettings", "homepage"))
+        if (!snap.exists()) {
+          setHeroImageUrl(null)
+          setHeroImagePath(null)
+          return
+        }
+        const data = snap.data() as any
+        setHeroImageUrl(typeof data.heroImageUrl === "string" ? data.heroImageUrl : null)
+        setHeroImagePath(typeof data.heroImagePath === "string" ? data.heroImagePath : null)
+      } catch (e) {
+        console.error("Error loading homepage hero image:", e)
+      }
+    }
+    void loadHomepageHero()
+  }, [])
 
   const handleSaveHotelSettings = () => {
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
+  }
+
+  const handleHeroImageUpload = async () => {
+    if (!heroImageFile) {
+      toast.error("Please choose an image first")
+      return
+    }
+
+    if (!heroImageFile.type.startsWith("image/")) {
+      toast.error("Please upload an image file")
+      return
+    }
+
+    // 8MB safety cap (keeps homepage fast)
+    if (heroImageFile.size > 8 * 1024 * 1024) {
+      toast.error("Image must be less than 8MB")
+      return
+    }
+
+    setUploadingHeroImage(true)
+    try {
+      // Delete old image (if we have a stored path)
+      if (heroImagePath) {
+        try {
+          await deleteObject(ref(storage, heroImagePath))
+        } catch (e) {
+          console.warn("Could not delete old hero image:", e)
+        }
+      }
+
+      // Versioned path => safe to set long-lived caching on Storage objects
+      const ext = (heroImageFile.name.split(".").pop() || "jpg").toLowerCase()
+      const path = `site/homepage-hero/${Date.now()}.${ext}`
+      const storageRef = ref(storage, path)
+
+      await uploadBytes(storageRef, heroImageFile, {
+        contentType: heroImageFile.type,
+        cacheControl: "public,max-age=31536000,immutable",
+      })
+
+      const url = await getDownloadURL(storageRef)
+
+      await setDoc(doc(db, "siteSettings", "homepage"), {
+        heroImageUrl: url,
+        heroImagePath: path,
+        updatedAt: new Date().toISOString(),
+      })
+
+      setHeroImageUrl(url)
+      setHeroImagePath(path)
+      setHeroImageFile(null)
+      toast.success("Homepage hero image updated")
+    } catch (e) {
+      console.error("Error uploading hero image:", e)
+      toast.error("Failed to upload image")
+    } finally {
+      setUploadingHeroImage(false)
+    }
+  }
+
+  const handleHeroImageDelete = async () => {
+    if (!heroImageUrl && !heroImagePath) return
+    setUploadingHeroImage(true)
+    try {
+      if (heroImagePath) {
+        try {
+          await deleteObject(ref(storage, heroImagePath))
+        } catch (e) {
+          console.warn("Could not delete hero image from storage:", e)
+        }
+      }
+
+      await setDoc(
+        doc(db, "siteSettings", "homepage"),
+        { heroImageUrl: null, heroImagePath: null, updatedAt: new Date().toISOString() },
+        { merge: true } as any,
+      )
+
+      setHeroImageUrl(null)
+      setHeroImagePath(null)
+      setHeroImageFile(null)
+      toast.success("Homepage hero image deleted")
+    } catch (e) {
+      console.error("Error deleting hero image:", e)
+      toast.error("Failed to delete image")
+    } finally {
+      setUploadingHeroImage(false)
+    }
   }
 
   return (
@@ -38,6 +164,66 @@ export default function SettingsPage() {
         <h1 className="text-3xl font-serif font-bold text-foreground">Settings</h1>
         <p className="text-muted-foreground mt-1">Configure hotel and payment settings</p>
       </div>
+
+      {/* Homepage Hero Image */}
+      <Card className="p-6">
+        <h2 className="text-xl font-semibold text-foreground mb-2">Homepage Hero Image</h2>
+        <p className="text-sm text-muted-foreground mb-6">
+          Upload the main “hello image” shown on the homepage. This is cached aggressively for fast loading.
+        </p>
+
+        <div className="space-y-4">
+          <div className="rounded-lg border border-border overflow-hidden bg-muted/20">
+            <img
+              src={heroPreviewUrl ?? heroImageUrl ?? "/helloImage/Screenshot%202025-10-30%20112005.png"}
+              alt="Homepage hero preview"
+              className="w-full h-[220px] md:h-[320px] object-cover"
+            />
+          </div>
+
+          <div className="flex flex-col md:flex-row gap-3">
+            <label className="flex-1">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setHeroImageFile(e.target.files?.[0] || null)}
+                className="hidden"
+                id="hero-image-upload"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() => document.getElementById("hero-image-upload")?.click()}
+                disabled={uploadingHeroImage}
+              >
+                <Upload className="w-4 h-4" />
+                {heroImageFile ? heroImageFile.name : "Choose image"}
+              </Button>
+            </label>
+
+            <Button
+              type="button"
+              onClick={handleHeroImageUpload}
+              disabled={uploadingHeroImage || !heroImageFile}
+              className="gap-2"
+            >
+              {uploadingHeroImage ? "Saving..." : "Upload"}
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleHeroImageDelete}
+              disabled={uploadingHeroImage || (!heroImageUrl && !heroImagePath)}
+              className="gap-2 text-destructive hover:text-destructive"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete
+            </Button>
+          </div>
+        </div>
+      </Card>
 
       {/* Hotel Profile Settings */}
       <Card className="p-6">

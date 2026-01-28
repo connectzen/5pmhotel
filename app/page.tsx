@@ -9,13 +9,15 @@ import { VenuesPreview } from "@/components/home/venues-preview"
 import { Testimonials } from "@/components/home/testimonials"
 import { LocationMap } from "@/components/home/location-map"
 import { FloatingBookingCta } from "@/components/home/floating-booking-cta"
+import { getHomepageHeroImageUrl } from "@/lib/site-settings-server"
 
-export default function Home() {
+export default async function Home() {
+  const heroImageUrl = await getHomepageHeroImageUrl()
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-1">
-        <HeroSection />
+        <HeroSection heroImageUrl={heroImageUrl} />
         <QuickSearch />
         <FeaturedRooms />
         <VenuesPreview />
