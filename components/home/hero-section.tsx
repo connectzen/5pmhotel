@@ -11,7 +11,9 @@ export function HeroSection({ heroImageUrl }: HeroSectionProps) {
         <div className="rounded-2xl border border-border bg-card shadow-xl overflow-hidden mx-auto">
           <div className="relative w-full h-[420px] md:h-[560px]">
             <Image
-              src={heroImageUrl ?? "/helloImage/Screenshot%202025-10-30%20112005.png"}
+              // Use spaces in the path; the browser/Next will encode them correctly.
+              // This avoids edge cases where double-encoding can 404 on some deployments.
+              src={heroImageUrl ?? "/helloImage/Screenshot 2025-10-30 112005.png"}
               alt="Hotel showcase"
               priority
               fill

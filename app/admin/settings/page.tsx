@@ -175,7 +175,7 @@ export default function SettingsPage() {
         <div className="space-y-4">
           <div className="rounded-lg border border-border overflow-hidden bg-muted/20">
             <img
-              src={heroPreviewUrl ?? heroImageUrl ?? "/helloImage/Screenshot%202025-10-30%20112005.png"}
+              src={heroPreviewUrl ?? heroImageUrl ?? "/helloImage/Screenshot 2025-10-30 112005.png"}
               alt="Homepage hero preview"
               className="w-full h-[220px] md:h-[320px] object-cover"
             />
