@@ -7,6 +7,7 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
+import { Trash2 } from "lucide-react"
 
 type GalleryItem = {
   id?: string
@@ -23,6 +24,34 @@ export default function AdminGalleryPage() {
   const [tags, setTags] = useState("")
   const [files, setFiles] = useState<FileList | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const extractStoragePath = (url: string): string | null => {
+    try {
+      const urlObj = new URL(url)
+      const match = urlObj.pathname.match(/\/o\/(.+)$/)
+      if (match) return decodeURIComponent(match[1])
+    } catch {}
+    return null
+  }
+
+  const handleDelete = async (it: GalleryItem) => {
+    if (!it.id) return
+    setDeletingId(it.id)
+    try {
+      const path = extractStoragePath(it.url)
+      if (path) {
+        const storageRef = ref(storage, path)
+        await deleteObject(storageRef).catch(() => {})
+      }
+      await deleteDoc(doc(db, "gallery", it.id))
+      toast.success("Image deleted")
+    } catch {
+      toast.error("Delete failed")
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "gallery"), (snap) => {
@@ -82,7 +111,7 @@ export default function AdminGalleryPage() {
         <div className="h-full overflow-y-auto p-4">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {items.map((it) => (
-              <Card key={it.id} className="overflow-hidden group relative">
+              <Card key={it.id} className="overflow-hidden relative">
                 <img
                   src={it.url}
                   alt={it.title || "Gallery image"}
@@ -90,26 +119,14 @@ export default function AdminGalleryPage() {
                   loading="lazy"
                   decoding="async"
                 />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition" />
-                <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition">
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={async () => {
-                      try {
-                        // Try delete storage object via public URL
-                        const r = ref(storage, it.url as any)
-                        await deleteObject(r).catch(() => {})
-                        await deleteDoc(doc(db, "gallery", it.id!))
-                        toast.success("Deleted")
-                      } catch {
-                        toast.error("Delete failed")
-                      }
-                    }}
-                  >
-                    Delete
-                  </Button>
-                </div>
+                <button
+                  onClick={() => handleDelete(it)}
+                  disabled={deletingId === it.id}
+                  className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-red-600 text-white rounded-md transition disabled:opacity-50"
+                  aria-label="Delete image"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </Card>
             ))}
             {items.length === 0 && (
